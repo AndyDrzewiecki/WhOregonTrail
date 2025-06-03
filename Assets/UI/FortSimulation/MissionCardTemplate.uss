@@ -1,0 +1,44 @@
+.mission-card {
+    background-color: rgb(40, 40, 40);
+    border-radius: 5px;
+    padding: 10px;
+    margin: 5px;
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);
+}
+
+.mission-title {
+    -unity-font-style: bold;
+    font-size: 16px;
+    color: rgb(255, 255, 255);
+    margin-bottom: 5px;
+}
+
+.mission-description {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+    margin-bottom: 5px;
+    white-space: normal;
+}
+
+.mission-difficulty {
+    font-size: 12px;
+    color: rgb(180, 180, 180);
+    margin-bottom: 5px;
+}
+
+.mission-skills {
+    font-size: 12px;
+    color: rgb(180, 180, 180);
+    margin-bottom: 10px;
+}
+
+.character-dropdown {
+    margin-top: 5px;
+    width: 100%;
+}
+
+.character-dropdown > Label {
+    color: rgb(200, 200, 200);
+    font-size: 12px;
+} 

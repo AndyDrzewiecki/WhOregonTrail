@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="CharacterStatusTemplate.uss" />
+    
+    <VisualElement name="character-status" class="character-status">
+        <VisualElement name="character-header" class="character-header">
+            <Label name="character-name" class="character-name" />
+            <Label name="character-role" class="character-role" />
+        </VisualElement>
+        
+        <VisualElement name="stats-container" class="stats-container">
+            <VisualElement name="stat-row" class="stat-row">
+                <Label text="Health" class="stat-label" />
+                <ProgressBar name="health-bar" class="stat-bar" />
+            </VisualElement>
+            <VisualElement name="stat-row" class="stat-row">
+                <Label text="Morale" class="stat-label" />
+                <ProgressBar name="morale-bar" class="stat-bar" />
+            </VisualElement>
+            <VisualElement name="stat-row" class="stat-row">
+                <Label text="Energy" class="stat-label" />
+                <ProgressBar name="energy-bar" class="stat-bar" />
+            </VisualElement>
+        </VisualElement>
+        
+        <VisualElement name="skills-container" class="skills-container">
+            <Label text="Skills" class="section-label" />
+            <VisualElement name="skills-list" class="skills-list" />
+        </VisualElement>
+        
+        <VisualElement name="current-mission" class="current-mission">
+            <Label text="Current Mission" class="section-label" />
+            <Label name="mission-name" class="mission-name" />
+            <Label name="mission-progress" class="mission-progress" />
+        </VisualElement>
+    </VisualElement>
+</UXML> 

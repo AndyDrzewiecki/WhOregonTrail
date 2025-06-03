@@ -1,0 +1,250 @@
+[
+  {
+    "id": "event_001",
+    "title": "Strange Noise",
+    "description": "You hear a strange noise in the distance. Do you investigate?",
+    "type": 0,
+    "probability": 0.7,
+    "cooldown": 300.0,
+    "isRepeatable": true,
+    "maxOccurrences": -1,
+    "eventImage": "events/strange_noise",
+    "eventSound": "sounds/strange_noise",
+    "eventAnimation": "animations/strange_noise",
+    "choices": [
+      {
+        "id": "choice_001",
+        "text": "Investigate the noise",
+        "probability": 0.8,
+        "choiceImage": "choices/investigate",
+        "choiceSound": "sounds/investigate",
+        "choiceAnimation": "animations/investigate",
+        "consequences": {
+          "character_1_health": -10.0,
+          "character_1_morale": 5.0,
+          "resource_food": -5.0
+        },
+        "followUpEvents": [
+          "event_002",
+          "event_003"
+        ]
+      },
+      {
+        "id": "choice_002",
+        "text": "Ignore it and continue",
+        "probability": 1.0,
+        "choiceImage": "choices/ignore",
+        "choiceSound": "sounds/ignore",
+        "choiceAnimation": "animations/ignore",
+        "consequences": {
+          "character_1_morale": -5.0
+        },
+        "followUpEvents": []
+      }
+    ],
+    "requirements": {},
+    "consequences": {},
+    "triggerEvents": [],
+    "blockingEvents": [],
+    "requiredCharacters": [],
+    "requiredLocations": [],
+    "requiredItems": []
+  },
+  {
+    "id": "event_002",
+    "title": "Found Treasure",
+    "description": "You found a small treasure chest hidden in the bushes!",
+    "type": 0,
+    "probability": 1.0,
+    "cooldown": 0.0,
+    "isRepeatable": false,
+    "maxOccurrences": 1,
+    "eventImage": "events/treasure",
+    "eventSound": "sounds/treasure",
+    "eventAnimation": "animations/treasure",
+    "choices": [
+      {
+        "id": "choice_003",
+        "text": "Open the chest",
+        "probability": 1.0,
+        "choiceImage": "choices/open_chest",
+        "choiceSound": "sounds/open_chest",
+        "choiceAnimation": "animations/open_chest",
+        "consequences": {
+          "resource_coins": 50.0,
+          "resource_food": 10.0,
+          "character_1_morale": 15.0
+        },
+        "followUpEvents": []
+      }
+    ],
+    "requirements": {},
+    "consequences": {},
+    "triggerEvents": ["event_001"],
+    "blockingEvents": [],
+    "requiredCharacters": [],
+    "requiredLocations": [],
+    "requiredItems": []
+  },
+  {
+    "id": "event_003",
+    "title": "Dangerous Animal",
+    "description": "You encounter a dangerous animal!",
+    "type": 0,
+    "probability": 1.0,
+    "cooldown": 0.0,
+    "isRepeatable": false,
+    "maxOccurrences": 1,
+    "eventImage": "events/dangerous_animal",
+    "eventSound": "sounds/dangerous_animal",
+    "eventAnimation": "animations/dangerous_animal",
+    "choices": [
+      {
+        "id": "choice_004",
+        "text": "Fight the animal",
+        "probability": 0.6,
+        "choiceImage": "choices/fight",
+        "choiceSound": "sounds/fight",
+        "choiceAnimation": "animations/fight",
+        "consequences": {
+          "character_1_health": -20.0,
+          "resource_food": 15.0,
+          "character_1_morale": 10.0
+        },
+        "followUpEvents": []
+      },
+      {
+        "id": "choice_005",
+        "text": "Run away",
+        "probability": 1.0,
+        "choiceImage": "choices/run",
+        "choiceSound": "sounds/run",
+        "choiceAnimation": "animations/run",
+        "consequences": {
+          "character_1_energy": -10.0,
+          "character_1_morale": -5.0
+        },
+        "followUpEvents": []
+      }
+    ],
+    "requirements": {},
+    "consequences": {},
+    "triggerEvents": ["event_001"],
+    "blockingEvents": [],
+    "requiredCharacters": [],
+    "requiredLocations": [],
+    "requiredItems": []
+  },
+  {
+    "id": "event_004",
+    "title": "Character Conflict",
+    "description": "Two of your companions are arguing about the best route to take.",
+    "type": 2,
+    "probability": 0.6,
+    "cooldown": 600.0,
+    "isRepeatable": true,
+    "maxOccurrences": -1,
+    "eventImage": "events/conflict",
+    "eventSound": "sounds/conflict",
+    "eventAnimation": "animations/conflict",
+    "choices": [
+      {
+        "id": "choice_006",
+        "text": "Try to mediate the situation",
+        "probability": 0.7,
+        "choiceImage": "choices/mediate",
+        "choiceSound": "sounds/mediate",
+        "choiceAnimation": "animations/mediate",
+        "consequences": {
+          "character_1_morale": 10.0,
+          "relationship_1_2": 5.0
+        },
+        "followUpEvents": []
+      },
+      {
+        "id": "choice_007",
+        "text": "Side with the first companion",
+        "probability": 0.8,
+        "choiceImage": "choices/side_first",
+        "choiceSound": "sounds/side_first",
+        "choiceAnimation": "animations/side_first",
+        "consequences": {
+          "relationship_1_2": -10.0,
+          "relationship_1_3": 5.0
+        },
+        "followUpEvents": []
+      },
+      {
+        "id": "choice_008",
+        "text": "Side with the second companion",
+        "probability": 0.8,
+        "choiceImage": "choices/side_second",
+        "choiceSound": "sounds/side_second",
+        "choiceAnimation": "animations/side_second",
+        "consequences": {
+          "relationship_1_2": -10.0,
+          "relationship_2_3": 5.0
+        },
+        "followUpEvents": []
+      }
+    ],
+    "requirements": {},
+    "consequences": {},
+    "triggerEvents": [],
+    "blockingEvents": [],
+    "requiredCharacters": ["char1", "char2"],
+    "requiredLocations": [],
+    "requiredItems": []
+  },
+  {
+    "id": "event_005",
+    "title": "Resource Shortage",
+    "description": "Your food supplies are running low.",
+    "type": 4,
+    "probability": 0.5,
+    "cooldown": 300.0,
+    "isRepeatable": true,
+    "maxOccurrences": -1,
+    "eventImage": "events/resource_shortage",
+    "eventSound": "sounds/resource_shortage",
+    "eventAnimation": "animations/resource_shortage",
+    "choices": [
+      {
+        "id": "choice_009",
+        "text": "Ration food",
+        "probability": 1.0,
+        "choiceImage": "choices/ration",
+        "choiceSound": "sounds/ration",
+        "choiceAnimation": "animations/ration",
+        "consequences": {
+          "resource_food": 5.0,
+          "character_1_morale": -10.0
+        },
+        "followUpEvents": []
+      },
+      {
+        "id": "choice_010",
+        "text": "Hunt for food",
+        "probability": 0.7,
+        "choiceImage": "choices/hunt",
+        "choiceSound": "sounds/hunt",
+        "choiceAnimation": "animations/hunt",
+        "consequences": {
+          "resource_food": 15.0,
+          "character_1_energy": -20.0,
+          "character_1_health": -5.0
+        },
+        "followUpEvents": []
+      }
+    ],
+    "requirements": {
+      "resource_food": 20.0
+    },
+    "consequences": {},
+    "triggerEvents": [],
+    "blockingEvents": [],
+    "requiredCharacters": [],
+    "requiredLocations": [],
+    "requiredItems": []
+  }
+] 

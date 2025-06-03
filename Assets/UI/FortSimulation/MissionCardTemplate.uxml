@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="MissionCardTemplate.uss" />
+    
+    <VisualElement name="mission-card" class="mission-card">
+        <Label name="mission-title" class="mission-title" />
+        <Label name="mission-description" class="mission-description" />
+        <Label name="mission-difficulty" class="mission-difficulty" />
+        <Label name="mission-skills" class="mission-skills" />
+        <DropdownField name="character-dropdown" label="Assign Character" class="character-dropdown" />
+    </VisualElement>
+</UXML> 

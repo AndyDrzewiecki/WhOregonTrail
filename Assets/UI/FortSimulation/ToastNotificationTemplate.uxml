@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="NotificationUI.uss" />
+    
+    <VisualElement class="notification-toast">
+        <VisualElement name="notification-icon" class="notification-icon" />
+        
+        <VisualElement class="notification-content">
+            <Label name="notification-title" class="notification-title" />
+            <Label name="notification-message" class="notification-message" />
+        </VisualElement>
+    </VisualElement>
+</UXML> 

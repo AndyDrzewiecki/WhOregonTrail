@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="FortSimulationView.uss" />
+    
+    <VisualElement name="fort-simulation-root" class="fort-simulation-root">
+        <!-- Top Bar -->
+        <VisualElement name="top-bar" class="top-bar">
+            <VisualElement name="day-info" class="day-info">
+                <Label name="day-label" text="Day 1 of 3" class="day-label" />
+                <Label name="fort-name" text="Fort Independence" class="fort-name" />
+            </VisualElement>
+            
+            <VisualElement name="resource-display" class="resource-display">
+                <VisualElement name="money-container" class="resource-container">
+                    <Label text="💰" class="resource-icon" />
+                    <Label name="money-value" text="1000" class="resource-value" />
+                </VisualElement>
+                
+                <VisualElement name="rash-container" class="resource-container">
+                    <Label text="🤕" class="resource-icon" />
+                    <Label name="rash-value" text="0%" class="resource-value" />
+                </VisualElement>
+                
+                <VisualElement name="morale-container" class="resource-container">
+                    <Label text="😐" class="resource-icon" />
+                    <ProgressBar name="morale-bar" class="resource-bar" />
+                </VisualElement>
+                
+                <VisualElement name="suspicion-container" class="resource-container">
+                    <Label text="🚩" class="resource-icon" />
+                    <ProgressBar name="suspicion-bar" class="resource-bar" />
+                </VisualElement>
+            </VisualElement>
+        </VisualElement>
+        
+        <!-- Main Content Area -->
+        <VisualElement name="main-content" class="main-content">
+            <!-- Left Panel - Characters -->
+            <VisualElement name="characters-panel" class="characters-panel">
+                <Label text="Available Companions" class="panel-title" />
+                <ScrollView name="characters-scroll" class="characters-scroll">
+                    <!-- Character status panels will be added here dynamically -->
+                </ScrollView>
+            </VisualElement>
+            
+            <!-- Center Panel - Missions -->
+            <VisualElement name="missions-panel" class="missions-panel">
+                <Label text="Available Missions" class="panel-title" />
+                <ScrollView name="missions-scroll" class="missions-scroll">
+                    <!-- Mission cards will be added here dynamically -->
+                </ScrollView>
+                
+                <Button name="begin-missions-button" text="Begin Missions" class="begin-missions-button" />
+            </VisualElement>
+            
+            <!-- Right Panel - Mission Details -->
+            <VisualElement name="mission-details-panel" class="mission-details-panel">
+                <Label text="Mission Details" class="panel-title" />
+                <VisualElement name="mission-details-content" class="mission-details-content">
+                    <!-- Mission rewards panel will be added here dynamically -->
+                </VisualElement>
+            </VisualElement>
+        </VisualElement>
+        
+        <!-- Day Summary Overlay (initially hidden) -->
+        <VisualElement name="day-summary-overlay" class="day-summary-overlay" style="display: none;">
+            <VisualElement name="day-summary-content" class="day-summary-content">
+                <Label text="Day 1 Summary" class="summary-title" />
+                
+                <VisualElement name="mission-results" class="mission-results">
+                    <!-- Mission results will be added here dynamically -->
+                </VisualElement>
+                
+                <VisualElement name="resource-changes" class="resource-changes">
+                    <Label text="Resource Changes" class="section-title" />
+                    <VisualElement name="resource-changes-list" class="resource-changes-list">
+                        <!-- Resource changes will be added here dynamically -->
+                    </VisualElement>
+                </VisualElement>
+                
+                <Button name="continue-button" text="Continue to Next Day" class="continue-button" />
+            </VisualElement>
+        </VisualElement>
+    </VisualElement>
+</UXML> 

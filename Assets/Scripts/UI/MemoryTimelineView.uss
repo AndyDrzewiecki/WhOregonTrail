@@ -1,0 +1,171 @@
+.memory-timeline-root {
+    flex-grow: 1;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 5px;
+}
+
+.header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+}
+
+.controls {
+    flex-direction: row;
+    align-items: center;
+}
+
+.filter-dropdown {
+    width: 150px;
+    margin-right: 10px;
+}
+
+.show-hidden-toggle {
+    margin-left: 10px;
+}
+
+.timeline-container {
+    flex-grow: 1;
+    padding: 5px;
+}
+
+.memory-entry {
+    flex-direction: row;
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: rgba(50, 50, 50, 0.7);
+    border-radius: 4px;
+    border-left-width: 3px;
+    border-left-color: rgb(100, 100, 100);
+}
+
+.memory-entry:hover {
+    background-color: rgba(70, 70, 70, 0.8);
+}
+
+.memory-timestamp {
+    width: 100px;
+    font-size: 12px;
+    color: rgb(200, 200, 200);
+}
+
+.memory-content {
+    flex-grow: 1;
+    margin-left: 10px;
+}
+
+.memory-title {
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+    margin-bottom: 3px;
+}
+
+.memory-description {
+    font-size: 13px;
+    color: rgb(220, 220, 220);
+    white-space: normal;
+}
+
+.memory-meta {
+    flex-direction: row;
+    margin-top: 5px;
+}
+
+.memory-category {
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-right: 5px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.memory-emotional-impact {
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.memory-details-popup {
+    position: absolute;
+    width: 80%;
+    max-width: 600px;
+    background-color: rgba(30, 30, 30, 0.95);
+    border-radius: 5px;
+    padding: 15px;
+    z-index: 100;
+}
+
+.memory-details-header {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.memory-details-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+}
+
+.memory-details-close {
+    cursor: pointer;
+    color: rgb(200, 200, 200);
+}
+
+.memory-details-content {
+    margin-bottom: 15px;
+}
+
+.memory-details-description {
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.memory-details-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.memory-details-meta-item {
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+.memory-details-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.memory-details-button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    background-color: rgba(60, 60, 60, 0.8);
+    color: rgb(255, 255, 255);
+}
+
+.memory-details-button:hover {
+    background-color: rgba(80, 80, 80, 0.9);
+}
+
+/* Category colors */
+.category-personal { background-color: rgba(100, 150, 255, 0.3); }
+.category-relationship { background-color: rgba(255, 100, 150, 0.3); }
+.category-adventure { background-color: rgba(100, 255, 150, 0.3); }
+.category-loss { background-color: rgba(150, 100, 255, 0.3); }
+.category-achievement { background-color: rgba(255, 200, 100, 0.3); }
+
+/* Emotional impact colors */
+.impact-positive { color: rgb(100, 255, 100); }
+.impact-neutral { color: rgb(200, 200, 200); }
+.impact-negative { color: rgb(255, 100, 100); } 

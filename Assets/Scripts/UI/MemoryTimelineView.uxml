@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<engine:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:engine="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd">
+    
+    <engine:VisualElement name="memory-timeline-root" class="memory-timeline-root">
+        <!-- Header -->
+        <engine:VisualElement name="header" class="header">
+            <engine:Label name="title-label" text="Memories" class="title" />
+            <engine:VisualElement name="controls" class="controls">
+                <engine:DropdownField name="filter-dropdown" label="Filter" class="filter-dropdown" />
+                <engine:Toggle name="show-hidden-toggle" label="Show Hidden" class="show-hidden-toggle" />
+            </engine:VisualElement>
+        </engine:VisualElement>
+        
+        <!-- Timeline Container -->
+        <engine:ScrollView name="timeline-container" class="timeline-container">
+            <!-- Memory entries will be added here dynamically -->
+        </engine:ScrollView>
+    </engine:VisualElement>
+    
+</engine:UXML> 

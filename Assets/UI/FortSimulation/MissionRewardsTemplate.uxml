@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="MissionRewardsTemplate.uss" />
+    
+    <VisualElement name="rewards-panel" class="rewards-panel">
+        <Label text="Potential Rewards" class="rewards-title" />
+        
+        <VisualElement name="rewards-container" class="rewards-container">
+            <VisualElement name="reward-row" class="reward-row">
+                <Label text="Resources" class="reward-label" />
+                <Label name="resources-value" class="reward-value" />
+            </VisualElement>
+            <VisualElement name="reward-row" class="reward-row">
+                <Label text="Experience" class="reward-label" />
+                <Label name="experience-value" class="reward-value" />
+            </VisualElement>
+            <VisualElement name="reward-row" class="reward-row">
+                <Label text="Reputation" class="reward-label" />
+                <Label name="reputation-value" class="reward-value" />
+            </VisualElement>
+        </VisualElement>
+        
+        <VisualElement name="success-chance" class="success-chance">
+            <Label text="Success Chance" class="chance-label" />
+            <ProgressBar name="chance-bar" class="chance-bar" />
+            <Label name="chance-value" class="chance-value" />
+        </VisualElement>
+        
+        <VisualElement name="risk-level" class="risk-level">
+            <Label text="Risk Level" class="risk-label" />
+            <VisualElement name="risk-indicator" class="risk-indicator" />
+        </VisualElement>
+    </VisualElement>
+</UXML> 

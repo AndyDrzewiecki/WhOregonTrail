@@ -1,0 +1,230 @@
+.toast-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    z-index: 1000;
+}
+
+/* Toast Notification Styles */
+.notification-toast {
+    background-color: rgb(40, 40, 40);
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    flex-direction: row;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    transform: translateX(50px);
+}
+
+.notification-enter {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-exit {
+    opacity: 0;
+    transform: translateX(50px);
+}
+
+.notification-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.icon-heart {
+    background-image: url('project://database/Assets/UI/Icons/heart.png');
+}
+
+.icon-resource {
+    background-image: url('project://database/Assets/UI/Icons/resource.png');
+}
+
+.icon-trait {
+    background-image: url('project://database/Assets/UI/Icons/trait.png');
+}
+
+.icon-event {
+    background-image: url('project://database/Assets/UI/Icons/event.png');
+}
+
+.icon-info {
+    background-image: url('project://database/Assets/UI/Icons/info.png');
+}
+
+.notification-content {
+    flex-grow: 1;
+}
+
+.notification-title {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(200, 200, 200);
+    margin-bottom: 2px;
+}
+
+.notification-message {
+    font-size: 12px;
+    color: rgb(180, 180, 180);
+    white-space: normal;
+}
+
+.notification-info {
+    border-left-color: rgb(0, 150, 255);
+    border-left-width: 3px;
+}
+
+.notification-warning {
+    border-left-color: rgb(255, 200, 0);
+    border-left-width: 3px;
+}
+
+.notification-success {
+    border-left-color: rgb(0, 255, 150);
+    border-left-width: 3px;
+}
+
+.notification-failure {
+    border-left-color: rgb(255, 100, 100);
+    border-left-width: 3px;
+}
+
+/* Logbook Styles */
+.logbook-panel {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 400px;
+    height: 500px;
+    background-color: rgb(30, 30, 30);
+    border-width: 2px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 8px;
+    z-index: 900;
+}
+
+.logbook-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(60, 60, 60);
+}
+
+.logbook-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(200, 200, 200);
+}
+
+.logbook-close-button {
+    width: 30px;
+    height: 30px;
+    background-color: transparent;
+    border-width: 0;
+    color: rgb(200, 200, 200);
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+.logbook-close-button:hover {
+    color: rgb(255, 100, 100);
+}
+
+.logbook-container {
+    flex-grow: 1;
+    padding: 10px;
+}
+
+.logbook-toggle-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgb(40, 40, 40);
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 20px;
+    color: rgb(200, 200, 200);
+    font-size: 20px;
+    z-index: 800;
+}
+
+.logbook-toggle-button:hover {
+    background-color: rgb(50, 50, 50);
+}
+
+/* Logbook Entry Styles */
+.logbook-entry {
+    background-color: rgb(35, 35, 35);
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.entry-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    margin-top: 2px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.entry-content {
+    flex-grow: 1;
+}
+
+.entry-title {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(200, 200, 200);
+    margin-bottom: 2px;
+}
+
+.entry-message {
+    font-size: 12px;
+    color: rgb(180, 180, 180);
+    white-space: normal;
+    margin-bottom: 5px;
+}
+
+.entry-date {
+    font-size: 10px;
+    color: rgb(150, 150, 150);
+}
+
+.entry-info {
+    border-left-color: rgb(0, 150, 255);
+    border-left-width: 3px;
+}
+
+.entry-warning {
+    border-left-color: rgb(255, 200, 0);
+    border-left-width: 3px;
+}
+
+.entry-success {
+    border-left-color: rgb(0, 255, 150);
+    border-left-width: 3px;
+}
+
+.entry-failure {
+    border-left-color: rgb(255, 100, 100);
+    border-left-width: 3px;
+} 

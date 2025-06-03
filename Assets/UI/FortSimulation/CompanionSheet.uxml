@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="CompanionSheet.uss" />
+    
+    <VisualElement name="companion-sheet" class="companion-sheet">
+        <!-- Header -->
+        <VisualElement name="companion-header" class="companion-header">
+            <Label name="companion-name" class="companion-name" />
+            <Label name="companion-role" class="companion-role" />
+            <Button name="close-button" text="✕" class="close-button" />
+        </VisualElement>
+        
+        <!-- Bio and Traits -->
+        <VisualElement name="bio-section" class="bio-section">
+            <Label text="Biography" class="section-title" />
+            <Label name="companion-bio" class="companion-bio" />
+            
+            <Label text="Traits" class="section-title" />
+            <VisualElement name="traits-list" class="traits-list" />
+        </VisualElement>
+        
+        <!-- Emotional State -->
+        <VisualElement name="emotional-state-section" class="emotional-state-section">
+            <Label text="Emotional State" class="section-title" />
+            
+            <VisualElement name="emotional-state-container" class="emotional-state-container">
+                <!-- Trust -->
+                <VisualElement name="trust-container" class="stat-container">
+                    <Label text="Trust" class="stat-label" />
+                    <ProgressBar name="trust-bar" class="stat-bar trust-bar" />
+                    <Label name="trust-value" class="stat-value" />
+                </VisualElement>
+                
+                <!-- Loyalty -->
+                <VisualElement name="loyalty-container" class="stat-container">
+                    <Label text="Loyalty" class="stat-label" />
+                    <ProgressBar name="loyalty-bar" class="stat-bar loyalty-bar" />
+                    <Label name="loyalty-value" class="stat-value" />
+                </VisualElement>
+                
+                <!-- Stress -->
+                <VisualElement name="stress-container" class="stat-container">
+                    <Label text="Stress" class="stat-label" />
+                    <ProgressBar name="stress-bar" class="stat-bar stress-bar" />
+                    <Label name="stress-value" class="stat-value" />
+                </VisualElement>
+                
+                <!-- Morale -->
+                <VisualElement name="morale-container" class="stat-container">
+                    <Label text="Morale" class="stat-label" />
+                    <ProgressBar name="morale-bar" class="stat-bar morale-bar" />
+                    <Label name="morale-value" class="stat-value" />
+                </VisualElement>
+                
+                <!-- Rash Immunity -->
+                <VisualElement name="rash-container" class="stat-container">
+                    <Label text="Rash Immunity" class="stat-label" />
+                    <ProgressBar name="rash-bar" class="stat-bar rash-bar" />
+                    <Label name="rash-value" class="stat-value" />
+                </VisualElement>
+            </VisualElement>
+            
+            <Label name="emotional-state-description" class="emotional-state-description" />
+        </VisualElement>
+        
+        <!-- Relationships -->
+        <VisualElement name="relationships-section" class="relationships-section">
+            <Label text="Relationships" class="section-title" />
+            <VisualElement name="relationships-list" class="relationships-list" />
+        </VisualElement>
+        
+        <!-- Memory Log -->
+        <VisualElement name="memory-section" class="memory-section">
+            <Label text="Memory Log" class="section-title" />
+            <ScrollView name="memory-log" class="memory-log">
+                <!-- Memory entries will be added here dynamically -->
+            </ScrollView>
+        </VisualElement>
+    </VisualElement>
+</UXML> 

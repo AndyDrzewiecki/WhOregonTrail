@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="FortDaySummary.uss" />
+    
+    <VisualElement name="day-summary-root" class="day-summary-root">
+        <!-- Header -->
+        <VisualElement name="summary-header" class="summary-header">
+            <Label name="day-title" text="Day 1 Summary" class="day-title" />
+            <Button name="close-button" text="✕" class="close-button" />
+        </VisualElement>
+        
+        <!-- Mission Results -->
+        <VisualElement name="mission-results-section" class="mission-results-section">
+            <Label text="Mission Results" class="section-title" />
+            <ScrollView name="mission-results" class="mission-results">
+                <!-- Mission results will be added here dynamically -->
+            </ScrollView>
+        </VisualElement>
+        
+        <!-- Emotional Reactions -->
+        <VisualElement name="emotional-reactions-section" class="emotional-reactions-section">
+            <Label text="Companion Reactions" class="section-title" />
+            <ScrollView name="emotional-reactions" class="emotional-reactions">
+                <!-- Emotional reactions will be added here dynamically -->
+            </ScrollView>
+        </VisualElement>
+        
+        <!-- Relationship Changes -->
+        <VisualElement name="relationship-changes-section" class="relationship-changes-section">
+            <Label text="Relationship Changes" class="section-title" />
+            <ScrollView name="relationship-changes" class="relationship-changes">
+                <!-- Relationship changes will be added here dynamically -->
+            </ScrollView>
+        </VisualElement>
+        
+        <!-- Resource Changes -->
+        <VisualElement name="resource-changes-section" class="resource-changes-section">
+            <Label text="Resource Changes" class="section-title" />
+            <VisualElement name="resource-changes" class="resource-changes">
+                <!-- Resource changes will be added here dynamically -->
+            </VisualElement>
+        </VisualElement>
+        
+        <!-- Continue Button -->
+        <Button name="continue-button" text="Continue to Next Day" class="continue-button" />
+    </VisualElement>
+</UXML> 

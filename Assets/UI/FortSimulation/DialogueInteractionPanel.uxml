@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="DialogueInteractionPanel.uss" />
+    
+    <VisualElement name="dialogue-panel" class="dialogue-panel">
+        <VisualElement name="dialogue-header" class="dialogue-header">
+            <Label name="dialogue-title" class="dialogue-title" />
+            <Button name="close-button" class="close-button" text="×" />
+        </VisualElement>
+        
+        <ScrollView name="dialogue-content" class="dialogue-content">
+            <Label name="dialogue-description" class="dialogue-description" />
+            <VisualElement name="options-container" class="options-container" />
+        </ScrollView>
+    </VisualElement>
+</UXML> 

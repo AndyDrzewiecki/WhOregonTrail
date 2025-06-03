@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="NotificationUI.uss" />
+    
+    <VisualElement class="logbook-entry">
+        <VisualElement name="entry-icon" class="entry-icon" />
+        
+        <VisualElement class="entry-content">
+            <Label name="entry-title" class="entry-title" />
+            <Label name="entry-message" class="entry-message" />
+            <Label name="entry-date" class="entry-date" />
+        </VisualElement>
+    </VisualElement>
+</UXML> 

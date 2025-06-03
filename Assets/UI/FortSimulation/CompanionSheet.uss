@@ -1,0 +1,234 @@
+.companion-sheet {
+    background-color: rgb(30, 30, 30);
+    border-width: 1px;
+    border-color: rgb(50, 50, 50);
+    border-radius: 5px;
+    padding: 15px;
+    width: 100%;
+    height: 100%;
+}
+
+.companion-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(50, 50, 50);
+}
+
+.companion-name {
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.companion-role {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+}
+
+.close-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background-color: transparent;
+    border-width: 0;
+    color: rgb(200, 200, 200);
+    font-size: 16px;
+}
+
+.close-button:hover {
+    color: rgb(255, 255, 255);
+}
+
+.section-title {
+    font-size: 16px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.bio-section {
+    margin-bottom: 15px;
+}
+
+.companion-bio {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.traits-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+
+.trait-tag {
+    background-color: rgb(40, 40, 40);
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin: 2px;
+    font-size: 12px;
+    color: rgb(200, 200, 200);
+}
+
+.emotional-state-section {
+    margin-bottom: 15px;
+}
+
+.emotional-state-container {
+    margin-bottom: 10px;
+}
+
+.stat-container {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    width: 100px;
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+}
+
+.stat-bar {
+    flex-grow: 1;
+    height: 8px;
+    background-color: rgb(60, 60, 60);
+    border-radius: 4px;
+    margin: 0 10px;
+}
+
+.stat-bar .unity-progress-bar__progress {
+    border-radius: 4px;
+}
+
+.trust-bar .unity-progress-bar__progress {
+    background-color: rgb(0, 150, 255);
+}
+
+.loyalty-bar .unity-progress-bar__progress {
+    background-color: rgb(0, 255, 150);
+}
+
+.stress-bar .unity-progress-bar__progress {
+    background-color: rgb(255, 100, 100);
+}
+
+.morale-bar .unity-progress-bar__progress {
+    background-color: rgb(255, 200, 0);
+}
+
+.rash-bar .unity-progress-bar__progress {
+    background-color: rgb(150, 0, 255);
+}
+
+.stat-value {
+    width: 40px;
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+    -unity-text-align: middle-right;
+}
+
+.emotional-state-description {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+    font-style: italic;
+}
+
+.relationships-section {
+    margin-bottom: 15px;
+}
+
+.relationships-list {
+    margin-top: 5px;
+}
+
+.relationship-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    background-color: rgb(40, 40, 40);
+    border-radius: 3px;
+    margin-bottom: 5px;
+}
+
+.relationship-name {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+}
+
+.relationship-score {
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+}
+
+.memory-section {
+    flex-grow: 1;
+}
+
+.memory-log {
+    flex-grow: 1;
+    margin-top: 5px;
+}
+
+.memory-entry {
+    background-color: rgb(40, 40, 40);
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 5px;
+}
+
+.memory-header {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.memory-title {
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.memory-date {
+    font-size: 12px;
+    color: rgb(150, 150, 150);
+}
+
+.memory-description {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+    white-space: normal;
+}
+
+.memory-changes {
+    flex-direction: row;
+    margin-top: 5px;
+}
+
+.change-item {
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+.change-positive {
+    color: rgb(0, 255, 150);
+}
+
+.change-negative {
+    color: rgb(255, 100, 100);
+}
+
+.change-neutral {
+    color: rgb(255, 200, 0);
+} 

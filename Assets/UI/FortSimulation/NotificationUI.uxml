@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="NotificationUI.uss" />
+    
+    <!-- Toast Notifications Container -->
+    <VisualElement name="toast-container" class="toast-container" />
+    
+    <!-- Logbook Panel -->
+    <VisualElement name="logbook-panel" class="logbook-panel">
+        <VisualElement name="logbook-header" class="logbook-header">
+            <Label text="Event Logbook" class="logbook-title" />
+            <Button name="logbook-toggle" text="×" class="logbook-close-button" />
+        </VisualElement>
+        
+        <ScrollView name="logbook-container" class="logbook-container" />
+    </VisualElement>
+    
+    <!-- Logbook Toggle Button (always visible) -->
+    <Button name="logbook-toggle" text="📖" class="logbook-toggle-button" />
+</UXML> 

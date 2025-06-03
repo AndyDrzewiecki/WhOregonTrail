@@ -1,0 +1,91 @@
+.character-status {
+    background-color: rgb(30, 30, 30);
+    border-radius: 5px;
+    padding: 15px;
+    margin: 5px;
+    border-width: 1px;
+    border-color: rgb(50, 50, 50);
+}
+
+.character-header {
+    margin-bottom: 10px;
+}
+
+.character-name {
+    -unity-font-style: bold;
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    margin-bottom: 2px;
+}
+
+.character-role {
+    font-size: 14px;
+    color: rgb(180, 180, 180);
+}
+
+.stats-container {
+    margin-bottom: 15px;
+}
+
+.stat-row {
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: rgb(200, 200, 200);
+    margin-bottom: 2px;
+}
+
+.stat-bar {
+    height: 8px;
+    background-color: rgb(60, 60, 60);
+    border-radius: 4px;
+}
+
+.stat-bar .unity-progress-bar__progress {
+    background-color: rgb(0, 150, 255);
+    border-radius: 4px;
+}
+
+.skills-container {
+    margin-bottom: 15px;
+}
+
+.section-label {
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+    margin-bottom: 5px;
+    -unity-font-style: bold;
+}
+
+.skills-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.skill-tag {
+    background-color: rgb(50, 50, 50);
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin: 2px;
+    font-size: 12px;
+    color: rgb(200, 200, 200);
+}
+
+.current-mission {
+    background-color: rgb(40, 40, 40);
+    border-radius: 3px;
+    padding: 8px;
+}
+
+.mission-name {
+    font-size: 12px;
+    color: rgb(255, 255, 255);
+    margin-bottom: 2px;
+}
+
+.mission-progress {
+    font-size: 11px;
+    color: rgb(180, 180, 180);
+} 

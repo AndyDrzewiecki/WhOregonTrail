@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<engine:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:engine="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd">
+
+    <engine:VisualElement name="main-menu" class="full-screen">
+        <engine:VisualElement name="title-container" class="title-container">
+            <engine:Label text="WhOregon Trail" name="game-title" class="game-title"/>
+            <engine:Label text="A Modern Reimagining" name="subtitle" class="subtitle"/>
+        </engine:VisualElement>
+
+        <engine:VisualElement name="menu-container" class="menu-container">
+            <engine:Button text="New Game" name="new-game-button" class="menu-button"/>
+            <engine:Button text="Load Game" name="load-game-button" class="menu-button"/>
+            <engine:Button text="Character Creation" name="character-creation-button" class="menu-button"/>
+            <engine:Button text="Settings" name="settings-button" class="menu-button"/>
+            <engine:Button text="Quit" name="quit-button" class="menu-button"/>
+        </engine:VisualElement>
+
+        <engine:VisualElement name="version-info" class="version-info">
+            <engine:Label text="Version 0.1.0" name="version-label"/>
+        </engine:VisualElement>
+    </engine:VisualElement>
+
+</engine:UXML> 
