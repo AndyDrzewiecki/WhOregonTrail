@@ -13,7 +13,11 @@ export default function GameLayout() {
       <Stack.Screen name="prologue" />
       <Stack.Screen name="trail" />
       <Stack.Screen name="setup/characters" />
+      <Stack.Screen name="setup/supplies" />
       <Stack.Screen name="fort/[fortId]/index" />
+      <Stack.Screen name="minigame/[gameId]" />
+      <Stack.Screen name="finale" />
+      <Stack.Screen name="end" />
     </Stack>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { GameStateProvider } from '@whoreagon-trail/game-engine';
 import { initRevenueCat } from '@/lib/iap';
 
 export default function RootLayout() {
@@ -10,7 +9,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GameStateProvider>
+    <>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -23,6 +22,6 @@ export default function RootLayout() {
         <Stack.Screen name="(game)" />
       </Stack>
       <StatusBar style="light" />
-    </GameStateProvider>
+    </>
   );
 }

@@ -153,6 +153,7 @@ export type GameAction =
   | { type: 'REMOVE_FLAG'; flag: string }
   | { type: 'UPDATE_CHARACTER_HEALTH'; characterId: CharacterId; health: number }
   | { type: 'MARK_CHARACTER_DEAD'; characterId: CharacterId }
+  | { type: 'ADD_PARTY_MEMBERS'; members: Character[] }
   | { type: 'END_RUN' };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -311,6 +312,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ? { ...m, isAlive: false, health: 0 }
             : m
         ),
+      };
+    }
+
+    case 'ADD_PARTY_MEMBERS': {
+      const newMembers: PartyMember[] = action.members.map((c) => ({
+        ...c,
+        health: 100,
+        isAlive: true,
+        joinedOnDay: state.day,
+      }));
+
+      // Expand relationship matrix to include new members
+      const newMatrix = { ...state.relationshipMatrix };
+      const allIds = [...state.party.map((m) => m.id), ...newMembers.map((m) => m.id)];
+      for (const id of newMembers.map((m) => m.id)) {
+        newMatrix[id] = {};
+        for (const otherId of allIds) {
+          if (otherId !== id) {
+            newMatrix[id][otherId] = 0;
+            if (newMatrix[otherId]) newMatrix[otherId][id] = 0;
+          }
+        }
+      }
+
+      return {
+        ...state,
+        party: [...state.party, ...newMembers],
+        relationshipMatrix: newMatrix,
       };
     }
 
