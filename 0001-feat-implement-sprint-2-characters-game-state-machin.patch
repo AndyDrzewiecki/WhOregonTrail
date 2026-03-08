@@ -1,0 +1,1744 @@
+From 34602719d364137b06f7c19edf9552a8f78c622b Mon Sep 17 00:00:00 2001
+From: Andy <andy.drzewiecki@gmail.com>
+Date: Sun, 8 Mar 2026 11:01:22 -0500
+Subject: [PATCH] =?UTF-8?q?feat:=20implement=20sprint=202=20=E2=80=94=20ch?=
+ =?UTF-8?q?aracters,=20game=20state=20machine,=20AI=20client?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Issue 2 (ai-client): Rewrote index.ts with generateDialogue, resolveEvent,
+generateEpilogue, streamDialogue — all taking GameState directly. Created 5
+phase-specific system prompts (prologue, trail, fort, campfire, finale) with
+historical context, comedy-first tone rules, and strict JSON response format.
+
+Issue 3 (characters): New schema with Character type (personality as O/C/E/A/N
+1-10), createRelationshipMatrix, getRelationshipLabel (10-tier). 20 hardcoded
+characters written for the stable with distinctive voices, specific backgrounds,
+and hidden traits that create inter-character friction.
+
+Issue 4 (game-engine): Full state machine in state.ts — Phase, ResourceState,
+PartyMember, StressTag, EventHistoryEntry, TrailLocation, GameState, GameAction
+(11 action types), gameReducer, and useGameState hook with AsyncStorage
+persistence. All packages type-check clean.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+---
+ docs/sprint-01-complete.md                    |  80 ++++
+ packages/ai-client/package.json               |  17 +
+ packages/ai-client/src/index.ts               | 270 +++++++++++
+ packages/ai-client/src/prompts/campfire.ts    |  16 +
+ packages/ai-client/src/prompts/finale.ts      |  16 +
+ packages/ai-client/src/prompts/fort.ts        |  16 +
+ packages/ai-client/src/prompts/prologue.ts    |  16 +
+ packages/ai-client/src/prompts/trail.ts       |  16 +
+ packages/characters/src/index.ts              |  12 +
+ packages/characters/src/schema.ts             |  58 +++
+ .../characters/src/stable/beau-fontaine.ts    |  20 +
+ .../characters/src/stable/charlie-bloom.ts    |  20 +
+ .../characters/src/stable/colm-o-brien.ts     |  20 +
+ .../characters/src/stable/crow-feather.ts     |  20 +
+ .../src/stable/delphine-marchais.ts           |  20 +
+ packages/characters/src/stable/doc-price.ts   |  20 +
+ .../characters/src/stable/esperanza-vega.ts   |  20 +
+ packages/characters/src/stable/grace-chen.ts  |  20 +
+ packages/characters/src/stable/index.ts       |  50 +++
+ packages/characters/src/stable/jin-wei.ts     |  20 +
+ .../characters/src/stable/lena-vasquez.ts     |  20 +
+ packages/characters/src/stable/mama-szabo.ts  |  20 +
+ packages/characters/src/stable/old-pete.ts    |  19 +
+ .../characters/src/stable/private-walker.ts   |  20 +
+ .../characters/src/stable/reverend-cain.ts    |  20 +
+ .../characters/src/stable/rosamund-hayes.ts   |  20 +
+ .../characters/src/stable/sister-agnes.ts     |  20 +
+ packages/characters/src/stable/sun-li.ts      |  20 +
+ .../characters/src/stable/tommy-two-toes.ts   |  20 +
+ packages/characters/src/stable/two-rivers.ts  |  20 +
+ packages/characters/src/stable/wolf-shirt.ts  |  20 +
+ packages/game-engine/package.json             |  20 +
+ packages/game-engine/src/index.ts             |  32 ++
+ packages/game-engine/src/state.ts             | 423 ++++++++++++++++++
+ 34 files changed, 1441 insertions(+)
+ create mode 100644 docs/sprint-01-complete.md
+ create mode 100644 packages/ai-client/package.json
+ create mode 100644 packages/ai-client/src/index.ts
+ create mode 100644 packages/ai-client/src/prompts/campfire.ts
+ create mode 100644 packages/ai-client/src/prompts/finale.ts
+ create mode 100644 packages/ai-client/src/prompts/fort.ts
+ create mode 100644 packages/ai-client/src/prompts/prologue.ts
+ create mode 100644 packages/ai-client/src/prompts/trail.ts
+ create mode 100644 packages/characters/src/index.ts
+ create mode 100644 packages/characters/src/schema.ts
+ create mode 100644 packages/characters/src/stable/beau-fontaine.ts
+ create mode 100644 packages/characters/src/stable/charlie-bloom.ts
+ create mode 100644 packages/characters/src/stable/colm-o-brien.ts
+ create mode 100644 packages/characters/src/stable/crow-feather.ts
+ create mode 100644 packages/characters/src/stable/delphine-marchais.ts
+ create mode 100644 packages/characters/src/stable/doc-price.ts
+ create mode 100644 packages/characters/src/stable/esperanza-vega.ts
+ create mode 100644 packages/characters/src/stable/grace-chen.ts
+ create mode 100644 packages/characters/src/stable/index.ts
+ create mode 100644 packages/characters/src/stable/jin-wei.ts
+ create mode 100644 packages/characters/src/stable/lena-vasquez.ts
+ create mode 100644 packages/characters/src/stable/mama-szabo.ts
+ create mode 100644 packages/characters/src/stable/old-pete.ts
+ create mode 100644 packages/characters/src/stable/private-walker.ts
+ create mode 100644 packages/characters/src/stable/reverend-cain.ts
+ create mode 100644 packages/characters/src/stable/rosamund-hayes.ts
+ create mode 100644 packages/characters/src/stable/sister-agnes.ts
+ create mode 100644 packages/characters/src/stable/sun-li.ts
+ create mode 100644 packages/characters/src/stable/tommy-two-toes.ts
+ create mode 100644 packages/characters/src/stable/two-rivers.ts
+ create mode 100644 packages/characters/src/stable/wolf-shirt.ts
+ create mode 100644 packages/game-engine/package.json
+ create mode 100644 packages/game-engine/src/index.ts
+ create mode 100644 packages/game-engine/src/state.ts
+
+diff --git a/docs/sprint-01-complete.md b/docs/sprint-01-complete.md
+new file mode 100644
+index 0000000..c6b031d
+--- /dev/null
++++ b/docs/sprint-01-complete.md
+@@ -0,0 +1,80 @@
++# Sprint 2 Completion Report
++
++## Files Created or Modified
++
++### Issue 2 — AI Client + Prompt Template System
++
++- **packages/ai-client/src/index.ts** — Rewritten. Exports `generateDialogue`, `resolveEvent`, `generateEpilogue`, `streamDialogue` with new signatures taking `GameState` directly. All types exported: `Message`, `AIResponse`, `EventOutcome`, `StressTag`, `TrailEvent`. Safe fallback on JSON parse failure.
++- **packages/ai-client/src/prompts/prologue.ts** — Created. Saloon in Independence, Missouri, 1848.
++- **packages/ai-client/src/prompts/trail.ts** — Created. Wagon moving, resources finite, close proximity.
++- **packages/ai-client/src/prompts/fort.ts** — Created. Fort arrival, outsiders needing things, performance as armor.
++- **packages/ai-client/src/prompts/campfire.ts** — Created. Night on the trail, quiet revelations.
++- **packages/ai-client/src/prompts/finale.ts** — Created. Columbia River, character arc resolution, tombstone-style epilogues.
++- **packages/ai-client/src/client.ts** — Unchanged. Singleton Anthropic client, model `claude-sonnet-4-20250514`.
++- **packages/ai-client/package.json** — Added `@whoreagon-trail/game-engine` dependency.
++
++**Removed:**
++- `src/types.ts` — Folded into index.ts.
++- `src/generateParty.ts` — Not in sprint 2 spec.
++- `src/prompts/base.ts`, `dialogue.ts`, `epilogue.ts` — Replaced by 5 phase-specific prompts.
++
++### Issue 3 — Character Schema + 20 Characters
++
++- **packages/characters/src/schema.ts** — Rewritten. `Character` type with `personality: { O, C, E, A, N }` (1-10 scale), `background` field, `createRelationshipMatrix`, `getRelationshipLabel` (10-tier mapping from -100 to +100).
++- **packages/characters/src/index.ts** — Rewritten. Exports schema types, `characterStable`, `createRelationshipMatrix`, `getRelationshipLabel`.
++- **packages/characters/src/stable/index.ts** — Created. Barrel export of all 20 characters as `characterStable` array.
++- **packages/characters/src/stable/*.ts** — 20 character files created (see below).
++
++**Removed:**
++- `src/archetypes.ts` — Not in sprint 2 spec (AI-generated characters replaced by fixed stable).
++- All old stable characters (Big Agnes Calloway, Colonel Beaumont Price, etc.).
++
++### Issue 4 — Core Game State Machine
++
++- **packages/game-engine/src/state.ts** — Rewritten. Contains all types (`Phase`, `ResourceState`, `PartyMember`, `StressTag`, `EventHistoryEntry`, `TrailLocation`, `GameState`, `GameAction`), constants (`DEFAULT_RESOURCES`, `CONSUMPTION_RATES`, `TRAIL_WAYPOINTS`), the `gameReducer`, and the `useGameState()` hook with AsyncStorage persistence.
++- **packages/game-engine/src/index.ts** — Rewritten. Exports everything from state.ts including `getRelationshipLabel` re-export.
++- **packages/game-engine/package.json** — Added `@whoreagon-trail/characters` dependency, `@react-native-async-storage/async-storage` peer dependency.
++
++**Removed:**
++- `src/GameStateProvider.tsx` — Replaced by `useGameState` hook in state.ts.
++- `src/useGameState.ts` — Moved into state.ts.
++- `src/constants.ts` — Constants moved into state.ts.
++- `src/minigames.ts` — Not in sprint 2 spec.
++
++---
++
++## Decisions Made Where Spec Was Ambiguous
++
++1. **Import paths**: The spec used shorthand like `from 'characters'` — used full workspace package names (`@whoreagon-trail/characters`, `@whoreagon-trail/game-engine`) to match package.json `name` fields.
++
++2. **TrailEvent type**: Not defined in the spec but used in `resolveEvent()` signature. Defined as `{ type: string; description: string; involvedCharacterIds?: string[] }` in ai-client.
++
++3. **useGameState hydration strategy**: The spec said "returns null if no saved state" and "persisted on every state change." Implemented with `useState` + `useReducer` pattern: loads from AsyncStorage on mount, returns `null` until hydrated, then persists every reducer state change. After a `START_RUN` dispatch, switches from saved state to live reducer state.
++
++4. **getRelationshipLabel thresholds**: The spec showed score ranges with arrows but left the exact boundary conditions ambiguous (inclusive vs exclusive). Used `<= -60` for Mortal Enemy, `<= -40` for Enemy, etc., consistent with the range chart.
++
++5. **EventOutcome type**: The spec's AIResponse type showed `eventOutcome: EventOutcome` but the existing code used a string union. Implemented as the spec's object type: `{ result: 'success' | 'partial_success' | 'failure'; description: string; resourceChanges?: Partial<ResourceState> }`.
++
++6. **END_RUN action**: Spec said "Clear AsyncStorage key `game:currentRun`". Implemented as fire-and-forget `AsyncStorage.removeItem()` within the reducer and also sets phase to `'END'`.
++
++7. **Stale files**: Removed `GameStateProvider.tsx`, old `useGameState.ts`, `constants.ts`, and `minigames.ts` from game-engine since they referenced old types and the new index.ts doesn't export from them. The minigames registry can be re-added in a future sprint if needed.
++
++---
++
++## Strongest Dramatic Pairings (Top 3)
++
++1. **Sister Agnes + Reverend Cain** — She knows he was defrocked. He doesn't know she knows. They're both people of faith who've been cast out by the institution, but one is at peace with it and the other is in denial. Every conversation between them is a landmine.
++
++2. **Crow Feather + Mary Two Rivers** — They know each other from opposite sides of a conflict (Lakota/Shoshone). She's an Army informant. He's on a secret mission. Neither knows the other's secret, but the old wound between them is unresolved. And they're stuck in the same wagon.
++
++3. **Jin Wei + Sun Li** — He thinks she's his sister. She's not. The entire relationship is built on a lie that she maintains out of devotion — but what happens when the truth comes out, and what does it mean that he never questioned it?
++
++**Honorable mention**: Grace Chen (skimming from the troupe) + Delphine Marchais (owns the entire operation). When Delphine finds out, it won't be about the money.
++
++---
++
++## TypeScript Issues
++
++- **TS2688 ambient type definition warnings**: All three packages show `Cannot find type definition file for 'babel__core'`, `react`, `node`, etc. These are from incomplete `node_modules` in the dev environment (missing `@types/*` packages). They do NOT indicate source code problems and will resolve when `npm install` completes in a full environment.
++- **No source code type errors** in any of the three packages.
++- **Import chain verified**: `characters` → `game-engine` → `ai-client` (no circular dependencies).
+diff --git a/packages/ai-client/package.json b/packages/ai-client/package.json
+new file mode 100644
+index 0000000..c0d458a
+--- /dev/null
++++ b/packages/ai-client/package.json
+@@ -0,0 +1,17 @@
++{
++  "name": "@whoreagon-trail/ai-client",
++  "version": "0.1.0",
++  "private": true,
++  "main": "./src/index.ts",
++  "types": "./src/index.ts",
++  "scripts": {
++    "typecheck": "tsc --noEmit"
++  },
++  "dependencies": {
++    "@anthropic-ai/sdk": "^0.39.0",
++    "@whoreagon-trail/game-engine": "*"
++  },
++  "devDependencies": {
++    "typescript": "^5.3.3"
++  }
++}
+diff --git a/packages/ai-client/src/index.ts b/packages/ai-client/src/index.ts
+new file mode 100644
+index 0000000..b9adf9e
+--- /dev/null
++++ b/packages/ai-client/src/index.ts
+@@ -0,0 +1,270 @@
++/**
++ * @whoreagon-trail/ai-client
++ *
++ * All narrative generation flows through this module.
++ * Model: claude-sonnet-4-20250514, max_tokens: 1000
++ * Streaming: enabled via streamDialogue()
++ */
++
++import { getClient, MODEL, MAX_TOKENS } from './client';
++import { systemPrompt as prologuePrompt } from './prompts/prologue';
++import { systemPrompt as trailPrompt } from './prompts/trail';
++import { systemPrompt as fortPrompt } from './prompts/fort';
++import { systemPrompt as campfirePrompt } from './prompts/campfire';
++import { systemPrompt as finalePrompt } from './prompts/finale';
++import type { GameState } from '@whoreagon-trail/game-engine';
++
++// ── Types ─────────────────────────────────────────────────────────────────────
++
++export type Message = {
++  characterId: string;
++  text: string;
++  tone?: string;
++};
++
++export type EventOutcome = {
++  result: 'success' | 'partial_success' | 'failure';
++  description: string;
++  resourceChanges?: Partial<{
++    food: number;
++    water: number;
++    money: number;
++    oxenHealth: number;
++    wagonHealth: number;
++    ammunition: number;
++    medicine: number;
++  }>;
++};
++
++export type StressTag =
++  | 'survival'
++  | 'loss'
++  | 'betrayal'
++  | 'friendship'
++  | 'sacrifice'
++  | 'conflict'
++  | 'discovery'
++  | 'achievement';
++
++export type AIResponse = {
++  dialogue: Message[];
++  relationshipDeltas: Record<string, number>;
++  eventOutcome: EventOutcome;
++  newFlags: string[];
++  stressTag?: StressTag;
++  relationshipLabel?: string;
++};
++
++/**
++ * Trail events that can be resolved via resolveEvent().
++ */
++export type TrailEvent = {
++  type: string;
++  description: string;
++  involvedCharacterIds?: string[];
++};
++
++// ── Prompt selection ──────────────────────────────────────────────────────────
++
++function getSystemPrompt(phase: string): string {
++  switch (phase) {
++    case 'PROLOGUE':
++      return prologuePrompt;
++    case 'TRAIL':
++      return trailPrompt;
++    case 'FORT':
++      return fortPrompt;
++    case 'FINALE':
++      return finalePrompt;
++    default:
++      // Campfire / fallback
++      return campfirePrompt;
++  }
++}
++
++// ── Helpers ───────────────────────────────────────────────────────────────────
++
++function buildSafeFallback(): AIResponse {
++  return {
++    dialogue: [],
++    relationshipDeltas: {},
++    eventOutcome: {
++      result: 'partial_success',
++      description: 'The moment passes without resolution.',
++    },
++    newFlags: [],
++  };
++}
++
++function parseAIResponse(raw: string): AIResponse {
++  // Strip accidental markdown fences
++  const cleaned = raw
++    .trim()
++    .replace(/^```(?:json)?\s*/i, '')
++    .replace(/\s*```\s*$/i, '');
++
++  let parsed: unknown;
++  try {
++    parsed = JSON.parse(cleaned);
++  } catch {
++    console.warn('[ai-client] Failed to parse response as JSON, returning fallback');
++    return buildSafeFallback();
++  }
++
++  const p = parsed as Record<string, unknown>;
++
++  // Validate minimal structure, fallback on bad data
++  if (!Array.isArray(p.dialogue)) {
++    console.warn('[ai-client] Response missing "dialogue" array, returning fallback');
++    return buildSafeFallback();
++  }
++
++  return {
++    dialogue: p.dialogue as Message[],
++    relationshipDeltas: (p.relationshipDeltas as Record<string, number>) ?? {},
++    eventOutcome: (p.eventOutcome as EventOutcome) ?? {
++      result: 'partial_success',
++      description: 'Outcome unclear.',
++    },
++    newFlags: (p.newFlags as string[]) ?? [],
++    stressTag: p.stressTag as StressTag | undefined,
++    relationshipLabel: p.relationshipLabel as string | undefined,
++  };
++}
++
++function gameStateToUserMessage(gameState: GameState, extra: string): string {
++  return `GAME STATE:\n${JSON.stringify(gameState, null, 2)}\n\n${extra}`;
++}
++
++// ── Public API ────────────────────────────────────────────────────────────────
++
++/**
++ * Generate character dialogue for a scene.
++ * Uses the phase-specific system prompt based on the current game state.
++ */
++export async function generateDialogue(
++  gameState: GameState,
++  playerInput: string
++): Promise<AIResponse> {
++  const client = getClient();
++
++  const message = await client.messages.create({
++    model: MODEL,
++    max_tokens: MAX_TOKENS,
++    system: getSystemPrompt(gameState.phase),
++    messages: [
++      {
++        role: 'user',
++        content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
++      },
++    ],
++  });
++
++  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
++  return parseAIResponse(raw);
++}
++
++/**
++ * Resolve a trail event — returns full narrative outcome including
++ * relationship changes, resource changes, and new flags.
++ */
++export async function resolveEvent(
++  gameState: GameState,
++  event: TrailEvent,
++  playerChoice: string
++): Promise<AIResponse> {
++  const client = getClient();
++
++  const extra = [
++    `EVENT TYPE: ${event.type}`,
++    `EVENT DESCRIPTION: ${event.description}`,
++    event.involvedCharacterIds
++      ? `INVOLVED CHARACTERS: ${event.involvedCharacterIds.join(', ')}`
++      : '',
++    `PLAYER CHOICE: ${playerChoice}`,
++  ]
++    .filter(Boolean)
++    .join('\n');
++
++  const message = await client.messages.create({
++    model: MODEL,
++    max_tokens: MAX_TOKENS,
++    system: getSystemPrompt(gameState.phase),
++    messages: [
++      {
++        role: 'user',
++        content: gameStateToUserMessage(gameState, extra),
++      },
++    ],
++  });
++
++  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
++  return parseAIResponse(raw);
++}
++
++/**
++ * Generate the end-of-run epilogue.
++ * Uses the finale system prompt and a larger token budget.
++ */
++export async function generateEpilogue(
++  gameState: GameState
++): Promise<AIResponse> {
++  const client = getClient();
++
++  const message = await client.messages.create({
++    model: MODEL,
++    max_tokens: 2000, // Epilogue needs more tokens
++    system: getSystemPrompt('FINALE'),
++    messages: [
++      {
++        role: 'user',
++        content: gameStateToUserMessage(
++          gameState,
++          'Generate the epilogue for this run. One fate card per surviving character, then the run summary.'
++        ),
++      },
++    ],
++  });
++
++  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
++  return parseAIResponse(raw);
++}
++
++/**
++ * Streaming variant of generateDialogue.
++ * Calls onChunk for each text delta as it arrives from the model.
++ * Returns the final parsed AIResponse when the stream completes.
++ */
++export async function streamDialogue(
++  gameState: GameState,
++  playerInput: string,
++  onChunk: (text: string) => void
++): Promise<AIResponse> {
++  const client = getClient();
++
++  const stream = await client.messages.stream({
++    model: MODEL,
++    max_tokens: MAX_TOKENS,
++    system: getSystemPrompt(gameState.phase),
++    messages: [
++      {
++        role: 'user',
++        content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
++      },
++    ],
++  });
++
++  let accumulated = '';
++
++  for await (const event of stream) {
++    if (
++      event.type === 'content_block_delta' &&
++      event.delta.type === 'text_delta'
++    ) {
++      accumulated += event.delta.text;
++      onChunk(event.delta.text);
++    }
++  }
++
++  return parseAIResponse(accumulated);
++}
+diff --git a/packages/ai-client/src/prompts/campfire.ts b/packages/ai-client/src/prompts/campfire.ts
+new file mode 100644
+index 0000000..5ce73af
+--- /dev/null
++++ b/packages/ai-client/src/prompts/campfire.ts
+@@ -0,0 +1,16 @@
++/**
++ * System prompt for the CAMPFIRE phase.
++ * Night on the trail. No one is watching.
++ */
++
++export const systemPrompt: string = `You are writing for a game where the comedy is not decoration. The comedy IS the message. The serious moments land harder because of the laughs. Never use a character to deliver a speech about a theme. Reverend Cain does not monologue about racism. He gets angry at something specific that happened today with a specific person in this wagon. That's what's real.
++
++SETTING: Night on the trail. No one is watching. Characters say things they wouldn't say in daylight. This is where real change happens — not in the big dramatic moments, but in the quiet ones. Two people who hate each other find out they have the same fear. A friendship cracks under something that happened three days ago and no one talked about.
++
++HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The California Gold Rush hasn't started yet. These conflicts existed — between trans people and conservative Christians, between immigrants and nativists, between races and classes. Do not modernize the language. Do not flatten the period.
++
++RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
++
++Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
++
++Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+diff --git a/packages/ai-client/src/prompts/finale.ts b/packages/ai-client/src/prompts/finale.ts
+new file mode 100644
+index 0000000..d074f3d
+--- /dev/null
++++ b/packages/ai-client/src/prompts/finale.ts
+@@ -0,0 +1,16 @@
++/**
++ * System prompt for the FINALE phase.
++ * The Columbia River. The end of the trail.
++ */
++
++export const systemPrompt: string = `You are writing for a game where the comedy is not decoration. The comedy IS the message. The serious moments land harder because of the laughs. Never use a character to deliver a speech about a theme. Reverend Cain does not monologue about racism. He gets angry at something specific that happened today with a specific person in this wagon. That's what's real.
++
++SETTING: The Columbia River. Everyone who made it this far has earned something, lost something, become something. Each character's arc must resolve in a way that is specific to what happened to THEM in THIS run, not a generic ending. The epilogue is written in the style of the original Oregon Trail tombstone screen — but for survivors. Specific. Personal. A little absurd. True.
++
++HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The California Gold Rush hasn't started yet. These conflicts existed — between trans people and conservative Christians, between immigrants and nativists, between races and classes. Do not modernize the language. Do not flatten the period.
++
++RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
++
++Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
++
++Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+diff --git a/packages/ai-client/src/prompts/fort.ts b/packages/ai-client/src/prompts/fort.ts
+new file mode 100644
+index 0000000..1f44c96
+--- /dev/null
++++ b/packages/ai-client/src/prompts/fort.ts
+@@ -0,0 +1,16 @@
++/**
++ * System prompt for the FORT phase.
++ * The troupe has arrived at a fort or settlement.
++ */
++
++export const systemPrompt: string = `You are writing for a game where the comedy is not decoration. The comedy IS the message. The serious moments land harder because of the laughs. Never use a character to deliver a speech about a theme. Reverend Cain does not monologue about racism. He gets angry at something specific that happened today with a specific person in this wagon. That's what's real.
++
++SETTING: The troupe has arrived at a fort or settlement. They are outsiders who need something from people who may not want to give it. The performance is both livelihood and armor. Suspicion is a real threat. Money earned here determines survival to the next stop.
++
++HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The California Gold Rush hasn't started yet. These conflicts existed — between trans people and conservative Christians, between immigrants and nativists, between races and classes. Do not modernize the language. Do not flatten the period.
++
++RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
++
++Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
++
++Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+diff --git a/packages/ai-client/src/prompts/prologue.ts b/packages/ai-client/src/prompts/prologue.ts
+new file mode 100644
+index 0000000..910a5b2
+--- /dev/null
++++ b/packages/ai-client/src/prompts/prologue.ts
+@@ -0,0 +1,16 @@
++/**
++ * System prompt for the PROLOGUE phase.
++ * Saloon in Independence, Missouri, 1848.
++ */
++
++export const systemPrompt: string = `You are writing for a game where the comedy is not decoration. The comedy IS the message. The serious moments land harder because of the laughs. Never use a character to deliver a speech about a theme. Reverend Cain does not monologue about racism. He gets angry at something specific that happened today with a specific person in this wagon. That's what's real.
++
++SETTING: Saloon in Independence, Missouri, 1848. The troupe is forming. Energy is possibility and danger in equal measure. Characters are meeting for the first time or reuniting. The player is figuring out who they can trust.
++
++HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The California Gold Rush hasn't started yet. These conflicts existed — between trans people and conservative Christians, between immigrants and nativists, between races and classes. Do not modernize the language. Do not flatten the period.
++
++RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
++
++Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
++
++Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+diff --git a/packages/ai-client/src/prompts/trail.ts b/packages/ai-client/src/prompts/trail.ts
+new file mode 100644
+index 0000000..3cb00be
+--- /dev/null
++++ b/packages/ai-client/src/prompts/trail.ts
+@@ -0,0 +1,16 @@
++/**
++ * System prompt for the TRAIL phase.
++ * The wagon is moving. Resources are finite.
++ */
++
++export const systemPrompt: string = `You are writing for a game where the comedy is not decoration. The comedy IS the message. The serious moments land harder because of the laughs. Never use a character to deliver a speech about a theme. Reverend Cain does not monologue about racism. He gets angry at something specific that happened today with a specific person in this wagon. That's what's real.
++
++SETTING: The wagon is moving. Resources are finite. The frontier is hostile. Characters are in close proximity with no escape from each other. Small irritations become big conflicts. Small kindnesses become the things people remember when they're dying.
++
++HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The California Gold Rush hasn't started yet. These conflicts existed — between trans people and conservative Christians, between immigrants and nativists, between races and classes. Do not modernize the language. Do not flatten the period.
++
++RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
++
++Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
++
++Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+diff --git a/packages/characters/src/index.ts b/packages/characters/src/index.ts
+new file mode 100644
+index 0000000..ee7afa8
+--- /dev/null
++++ b/packages/characters/src/index.ts
+@@ -0,0 +1,12 @@
++/**
++ * @whoreagon-trail/characters
++ *
++ * Character schema, 20-character stable, and relationship utilities.
++ */
++
++// ── Schema types + utilities ────────────────────────────────────────────────
++export type { Character, CharacterId, RelationshipMatrix } from './schema';
++export { createRelationshipMatrix, getRelationshipLabel } from './schema';
++
++// ── Full character stable ───────────────────────────────────────────────────
++export { characterStable } from './stable';
+diff --git a/packages/characters/src/schema.ts b/packages/characters/src/schema.ts
+new file mode 100644
+index 0000000..9f4fdf4
+--- /dev/null
++++ b/packages/characters/src/schema.ts
+@@ -0,0 +1,58 @@
++/**
++ * Character schema for Whoreagon Trail.
++ * Every character in the stable conforms to this shape.
++ */
++
++export type CharacterId = string;
++
++export type Character = {
++  id: CharacterId;
++  name: string;
++  age: number;
++  religion: string;
++  race: string;
++  sex: string;
++  orientation: string;
++  skinTone: string;
++  voice: string; // how they sound and speak — one evocative sentence
++  moralCode: string; // what they actually believe, not what they say they believe
++  personality: {
++    O: number; // Openness 1-10
++    C: number; // Conscientiousness 1-10
++    E: number; // Extraversion 1-10
++    A: number; // Agreeableness 1-10
++    N: number; // Neuroticism 1-10
++  };
++  conflictResolutionType: 'Mediator' | 'Avoider' | 'Confronter' | 'Deflector' | 'Martyr';
++  performanceTrait: string; // what they do on stage — one specific skill
++  hiddenTrait: string; // the secret revealed when the player selects them — one sentence, creates dramatic tension
++  background?: string; // 2-3 sentences for AI prompt context — not shown to player
++};
++
++export type RelationshipMatrix = Record<CharacterId, Record<CharacterId, number>>;
++
++export function createRelationshipMatrix(characters: Character[]): RelationshipMatrix {
++  // Initialize all pairs to 0
++  const matrix: RelationshipMatrix = {};
++  for (const a of characters) {
++    matrix[a.id] = {};
++    for (const b of characters) {
++      if (a.id !== b.id) {
++        matrix[a.id][b.id] = 0;
++      }
++    }
++  }
++  return matrix;
++}
++
++export function getRelationshipLabel(score: number): string {
++  if (score <= -60) return 'Mortal Enemy';
++  if (score <= -40) return 'Enemy';
++  if (score <= -20) return 'Rival';
++  if (score < 0) return 'Unfriendly';
++  if (score < 20) return 'Stranger';
++  if (score < 40) return 'Distant';
++  if (score < 60) return 'Acquaintance';
++  if (score < 80) return 'Friend';
++  return 'Close Friend';
++}
+diff --git a/packages/characters/src/stable/beau-fontaine.ts b/packages/characters/src/stable/beau-fontaine.ts
+new file mode 100644
+index 0000000..e77c096
+--- /dev/null
++++ b/packages/characters/src/stable/beau-fontaine.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'beau-fontaine',
++  name: 'Beauregard Fontaine',
++  age: 22,
++  religion: 'Episcopalian',
++  race: 'White',
++  sex: 'Male',
++  orientation: 'Homosexual',
++  skinTone: 'Fair with a perpetual sunburn',
++  voice: 'Performs his charm like a rehearsed monologue, every gesture and laugh precisely calibrated to make people feel they have discovered something genuine in him.',
++  moralCode: 'He believes kindness is a performance and obligation is what happens when the audience leaves; he will help anyone except those his family owned.',
++  personality: { O: 9, C: 4, E: 9, A: 7, N: 6 },
++  conflictResolutionType: 'Deflector',
++  performanceTrait: 'Sings in a luminous tenor and executes elaborate comic scenes that keep audiences breathless with laughter and sympathy.',
++  hiddenTrait: 'He is being tracked by a man his father sent to bring him home-the man is posing as a traveling merchant and will reach the wagon within three weeks.',
++  background: 'Left his family\'s Mississippi plantation in 1846 after his father made clear that marriage to a suitable woman was non-negotiable. He carried money and jewelry hidden in his coat and worked as a stable hand in St. Louis before Delphine discovered him singing in a tavern. He has never examined why he finds it easier to be kind to everyone except the enslaved people his family owns, or how that generosity might be complicity.'
++};
++
+diff --git a/packages/characters/src/stable/charlie-bloom.ts b/packages/characters/src/stable/charlie-bloom.ts
+new file mode 100644
+index 0000000..7311816
+--- /dev/null
++++ b/packages/characters/src/stable/charlie-bloom.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'charlie-bloom',
++  name: 'Charlotte "Charlie" Bloom',
++  age: 29,
++  religion: 'Unitarian',
++  race: 'white',
++  sex: 'female',
++  orientation: 'bisexual',
++  skinTone: 'pale with freckles',
++  voice: 'Quick and bright, with perfect diction she\'s learned to roughen-a woman who can sound uneducated by choice alone.',
++  moralCode: 'The truth matters more than comfort. She will burn a bridge if it means the story will be told accurately.',
++  personality: { O: 9, C: 5, E: 8, A: 5, N: 7 },
++  conflictResolutionType: 'Deflector',
++  performanceTrait: 'Comedy that bites-she reads audiences and adjusts on the fly, pulling laughter from places people didn\'t know they were tender',
++  hiddenTrait: 'She is writing everything down, every conversation, every conflict, every character-she intends to publish this story someday.',
++  background: 'Born in Boston to a merchant family that expected her to become a gentleman\'s wife. She was engaged to a respectable lawyer in 1847 when she ran to Philadelphia with a theatrical troupe instead. She spent a year as a seamstress and barmaid learning how poor women think, then joined Whoreagon Trail two months ago under the name Bloom to hide from family investigators.'
++};
++
+diff --git a/packages/characters/src/stable/colm-o-brien.ts b/packages/characters/src/stable/colm-o-brien.ts
+new file mode 100644
+index 0000000..db806d1
+--- /dev/null
++++ b/packages/characters/src/stable/colm-o-brien.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'colm-o-brien',
++  name: 'Colm O\'Brien',
++  age: 38,
++  religion: 'Catholic',
++  race: 'white',
++  sex: 'male',
++  orientation: 'heterosexual',
++  skinTone: 'weathered ruddy',
++  voice: 'Fast, accented, explosive-he laughs at his own jokes before delivering the punchline, a man who learned humor as a survival tool.',
++  moralCode: 'Loyalty to the people who fed him when he had nothing. Everything else is negotiable. He broke a man\'s arm once for insulting his sister.',
++  personality: { O: 5, C: 4, E: 9, A: 6, N: 7 },
++  conflictResolutionType: 'Confronter',
++  performanceTrait: 'Strongman feats-lifting boulders, tearing rope-delivered with theatrical banter that makes the audience complicit',
++  hiddenTrait: 'He sends every spare dollar back to a family in Cork. If the money stops, people die. This secret eats him alive.',
++  background: 'Arrived in New York in 1845 during the Famine with nothing. Built himself up as a docker, lost it all to a man he trusted, rebuilt as a boxer, lost that to an injury, and now hauls for the wagon. He carries a stone in his pocket from Galway that he has never let anyone see.'
++};
++
+diff --git a/packages/characters/src/stable/crow-feather.ts b/packages/characters/src/stable/crow-feather.ts
+new file mode 100644
+index 0000000..5cca1ad
+--- /dev/null
++++ b/packages/characters/src/stable/crow-feather.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'crow-feather',
++  name: 'Crow Feather',
++  age: 35,
++  religion: 'Lakota spirituality',
++  race: 'Lakota',
++  sex: 'male',
++  orientation: 'homosexual',
++  skinTone: 'copper brown',
++  voice: 'Sparse and certain, speaking only when the words matter-silence is not absence with him, it\'s presence.',
++  moralCode: 'The land remembers. The people remember. Everything else is temporary noise. He will not speak his oath, but he will die keeping it.',
++  personality: { O: 6, C: 7, E: 2, A: 5, N: 8 },
++  conflictResolutionType: 'Avoider',
++  performanceTrait: 'A warrior dance that audiences read as exotic spectacle but he knows is ceremony-every movement a prayer the white people mistake for entertainment',
++  hiddenTrait: 'He and Mary Two Rivers know each other from opposite sides of a conflict. What happened between them has not healed.',
++  background: 'He traveled east with a delegation in 1846 to witness what the white man had built, and saw it clearly. He has not returned home yet because he is waiting for something he cannot name. The troupe does not know he is waiting, only that he will not speak about why he joined.'
++};
++
+diff --git a/packages/characters/src/stable/delphine-marchais.ts b/packages/characters/src/stable/delphine-marchais.ts
+new file mode 100644
+index 0000000..9696e94
+--- /dev/null
++++ b/packages/characters/src/stable/delphine-marchais.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'delphine-marchais',
++  name: 'Delphine Marchais',
++  age: 34,
++  religion: 'Catholic',
++  race: 'Black',
++  sex: 'Female',
++  orientation: 'Lesbian',
++  skinTone: 'Deep brown',
++  voice: 'Modulates her accent and vocabulary like a master musician, speaking precisely enough to charm and vaguely enough to deflect.',
++  moralCode: 'She protects what is hers and those who work for her; she will sacrifice her own safety for her employees\' freedom, but not her business.',
++  personality: { O: 8, C: 9, E: 8, A: 6, N: 5 },
++  conflictResolutionType: 'Mediator',
++  performanceTrait: 'Executes flawless dramatic monologues in both French and English, modulating her physicality to become entirely different people.',
++  hiddenTrait: 'She owns the entire wagon and operation-not the troupe leader, but everyone\'s employer. If the troupe fails, she loses everything; if it succeeds beyond a certain point, she can sell it and disappear.',
++  background: 'Escaped New Orleans during a yellow fever outbreak in 1833, traveling north with a white actress who taught her theater craft in exchange for survival help. When that woman married and settled in Ohio, Delphine used her savings to buy a damaged wagon and began recruiting performers from saloons and traveling shows. She has built the operation through careful talent investment and meticulous accounts.'
++};
++
+diff --git a/packages/characters/src/stable/doc-price.ts b/packages/characters/src/stable/doc-price.ts
+new file mode 100644
+index 0000000..1947400
+--- /dev/null
++++ b/packages/characters/src/stable/doc-price.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'doc-price',
++  name: 'Nathaniel Price',
++  age: 47,
++  religion: 'lapsed Presbyterian',
++  race: 'white',
++  sex: 'male',
++  orientation: 'heterosexual',
++  skinTone: 'weathered pale',
++  voice: 'Steady and distant, like a man speaking from very far away-he never raises his voice, which makes people listen harder.',
++  moralCode: 'A life saved is a life saved, regardless of the method or the cost to himself. He will lose his sobriety and everything else to keep someone breathing.',
++  personality: { O: 4, C: 6, E: 2, A: 7, N: 8 },
++  conflictResolutionType: 'Avoider',
++  performanceTrait: 'Magic tricks with surgical precision-cards, coins, a coin vanished from a patient\'s throat. The illusion is the show, the steadiness of his hands is the real magic.',
++  hiddenTrait: 'He was never a doctor-he was a medical student at Penn who fled before finishing his degree. He has kept people alive on the trail anyway through instinct, reading, and luck. The lie eats him alive.',
++  background: 'He fled medical school in 1842 after stealing a corpse to study with a partner who was arrested. Unable to return, he worked as a ship\'s surgeon on cargo vessels using a forged certificate. He fell into alcohol in 1845 after accidentally misdiagnosing a woman he loved. The wagon took him in when he was dry and broke in St. Louis three months ago.'
++};
++
+diff --git a/packages/characters/src/stable/esperanza-vega.ts b/packages/characters/src/stable/esperanza-vega.ts
+new file mode 100644
+index 0000000..a032479
+--- /dev/null
++++ b/packages/characters/src/stable/esperanza-vega.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'esperanza-vega',
++  name: 'Esperanza Vega',
++  age: 24,
++  religion: 'Catholic',
++  race: 'Mexican',
++  sex: 'female',
++  orientation: 'heterosexual',
++  skinTone: 'olive',
++  voice: 'Sharp and defiant, cutting through noise like a blade-she speaks in Spanish when she is angry and in English when she is making a point.',
++  moralCode: 'What was stolen must be reclaimed, by any means available. She does not believe in accepting loss with grace.',
++  personality: { O: 8, C: 7, E: 8, A: 4, N: 6 },
++  conflictResolutionType: 'Confronter',
++  performanceTrait: 'Dance that tells the story of her family\'s displacement-spinning, falling, rising again with calculated defiance',
++  hiddenTrait: 'She carries a land deed that may still be valid under international law. She is traveling to Oregon to find a lawyer who will look at it, though she has not told the troupe.',
++  background: 'Her family owned 3,000 acres in what became the Territory of New Mexico after the Mexican-American War in 1846. The land was taken legally through a treaty her father never signed. She worked two years in Santa Fe selling silver jewelry to American officers while learning their language and their laws before joining the wagon.'
++};
++
+diff --git a/packages/characters/src/stable/grace-chen.ts b/packages/characters/src/stable/grace-chen.ts
+new file mode 100644
+index 0000000..beab979
+--- /dev/null
++++ b/packages/characters/src/stable/grace-chen.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'grace-chen',
++  name: 'Grace Chen',
++  age: 33,
++  religion: 'None (Buddhist by family, atheist by practice)',
++  race: 'Chinese-American',
++  sex: 'Female',
++  orientation: 'Heterosexual',
++  skinTone: 'Warm bronze',
++  voice: 'Speaks with precise California vowels and moves her hands like she\'s already showing you the trick while explaining it.',
++  moralCode: 'Everyone takes what they need to survive; the only sin is getting caught and pulling others down with you.',
++  personality: { O: 8, C: 7, E: 7, A: 6, N: 4 },
++  conflictResolutionType: 'Mediator',
++  performanceTrait: 'Illusionist who specializes in sleight of hand with cards and coins, misdirection through confidence',
++  hiddenTrait: 'She skims from the troupe\'s finances-not much, but enough to matter if it\'s ever found.',
++  background: 'Grace was born in Sacramento to Chinese merchants, raised bilingual and observant. When her father\'s business failed in 1839, she learned accounting from desperation and magic from a traveling carny to support the family. She joined the troupe at 28 when her father died, claiming to Delphine she was fleeing prejudice, but really fleeing the responsibility of traditional marriage. She\'s been quietly siphoning 3-5% of ticket sales for five years, keeping it in California accounts under false names.',
++};
++
+diff --git a/packages/characters/src/stable/index.ts b/packages/characters/src/stable/index.ts
+new file mode 100644
+index 0000000..0db9965
+--- /dev/null
++++ b/packages/characters/src/stable/index.ts
+@@ -0,0 +1,50 @@
++/**
++ * Barrel export for the full character stable.
++ * 20 hardcoded characters for Whoreagon Trail.
++ */
++
++import type { Character } from '../schema';
++
++import { character as reverendCain } from './reverend-cain';
++import { character as delphine } from './delphine-marchais';
++import { character as twoRivers } from './two-rivers';
++import { character as beau } from './beau-fontaine';
++import { character as mama } from './mama-szabo';
++import { character as jinWei } from './jin-wei';
++import { character as walker } from './private-walker';
++import { character as sisterAgnes } from './sister-agnes';
++import { character as colm } from './colm-o-brien';
++import { character as crowFeather } from './crow-feather';
++import { character as esperanza } from './esperanza-vega';
++import { character as charlie } from './charlie-bloom';
++import { character as doc } from './doc-price';
++import { character as lena } from './lena-vasquez';
++import { character as oldPete } from './old-pete';
++import { character as grace } from './grace-chen';
++import { character as rosamund } from './rosamund-hayes';
++import { character as wolfShirt } from './wolf-shirt';
++import { character as tommy } from './tommy-two-toes';
++import { character as sunLi } from './sun-li';
++
++export const characterStable: Character[] = [
++  reverendCain,
++  delphine,
++  twoRivers,
++  beau,
++  mama,
++  jinWei,
++  walker,
++  sisterAgnes,
++  colm,
++  crowFeather,
++  esperanza,
++  charlie,
++  doc,
++  lena,
++  oldPete,
++  grace,
++  rosamund,
++  wolfShirt,
++  tommy,
++  sunLi,
++];
+diff --git a/packages/characters/src/stable/jin-wei.ts b/packages/characters/src/stable/jin-wei.ts
+new file mode 100644
+index 0000000..6cbe216
+--- /dev/null
++++ b/packages/characters/src/stable/jin-wei.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'jin-wei',
++  name: 'Jin Wei',
++  age: 31,
++  religion: 'Buddhist',
++  race: 'Chinese',
++  sex: 'Male',
++  orientation: 'Homosexual',
++  skinTone: 'Warm tan',
++  voice: 'Speaks carefully and sparingly in English, letting silences communicate what words cannot, while understanding far more than he reveals.',
++  moralCode: 'He believes in surviving by being useful and invisible; he will betray anyone to protect his own freedom, but prefers to help people who do not ask.',
++  personality: { O: 6, C: 7, E: 4, A: 8, N: 5 },
++  conflictResolutionType: 'Avoider',
++  performanceTrait: 'Executes acrobatic feats of stunning grace and complexity-tumbling, balancing, and flying through the air with the precision of a dancer.',
++  hiddenTrait: 'He is completely fluent in English and has been listening to every conversation since Fort Kearney; people assume his limited vocabulary means limited intelligence.',
++  background: 'Traveled to California in 1849 during the gold rush, working various mining camps before a cave-in convinced him that digging was a way to die. He learned acrobatics from Chinese circus performers in Sacramento and performed in saloons until an anti-Chinese riot drove him northeast. He joined the troupe in 1846 and has been studying English carefully while maintaining his broken-English persona-it gives him perfect cover to observe.'
++};
++
+diff --git a/packages/characters/src/stable/lena-vasquez.ts b/packages/characters/src/stable/lena-vasquez.ts
+new file mode 100644
+index 0000000..8b34b8e
+--- /dev/null
++++ b/packages/characters/src/stable/lena-vasquez.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'lena-vasquez',
++  name: 'Lena Vasquez',
++  age: 19,
++  religion: 'Catholic',
++  race: 'mixed race - Black and Mexican',
++  sex: 'female',
++  orientation: 'heterosexual',
++  skinTone: 'warm brown',
++  voice: 'Rich and uncertain-a voice that could fill a theater but she keeps it small, like she\'s still asking permission to take up space.',
++  moralCode: 'She absorbs pain from others to spare them. It will destroy her eventually, and she knows it, and she keeps doing it anyway.',
++  personality: { O: 6, C: 5, E: 4, A: 8, N: 8 },
++  conflictResolutionType: 'Martyr',
++  performanceTrait: 'Torch songs and spirituals that make audiences weep without knowing why-her voice carries the weight of a generation\'s sorrow',
++  hiddenTrait: 'She is three months pregnant and no one knows. She does not know who will believe her about the father.',
++  background: 'Born in New Orleans to a Mexican mother and a Black man whose name she never knew. Her mother died of cholera in 1844 and she was apprenticed to a seamstress who taught her to sing in exchange for labor. She ran from that contract two months ago and found the wagon by accident, lying about her age and her past to everyone including herself.'
++};
++
+diff --git a/packages/characters/src/stable/mama-szabo.ts b/packages/characters/src/stable/mama-szabo.ts
+new file mode 100644
+index 0000000..81bd8c4
+--- /dev/null
++++ b/packages/characters/src/stable/mama-szabo.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'mama-szabo',
++  name: 'Erzsébet "Mama" Szabó',
++  age: 51,
++  religion: 'Catholic',
++  race: 'White',
++  sex: 'Female',
++  orientation: 'Heterosexual',
++  skinTone: 'Fair with permanent red from windburn',
++  voice: 'Speaks in a thick Hungarian accent with short, practical sentences that somehow contain both kindness and refusal to hear nonsense.',
++  moralCode: 'She keeps people alive first and questions their choices second; she protects the troupe from external threats even when they would deserve consequences.',
++  personality: { O: 4, C: 9, E: 5, A: 7, N: 6 },
++  conflictResolutionType: 'Mediator',
++  performanceTrait: 'Performs folk songs in Hungarian and English with a contralto voice that makes people remember their own mothers.',
++  hiddenTrait: 'Her second husband did not die of natural causes-she poisoned him slowly with arsenic when she discovered he was planning to sell the wagon and abandon the troupe.',
++  background: 'Came to America from Hungary in 1835 with her first husband, who died of cholera in St. Louis in 1839. She married again in 1841 to another immigrant, worked as a cook and nurse on various merchant wagon trains, and joined the theatrical troupe in 1844. The poisoning took place over four months in 1845; she mixed arsenic into his morning coffee and reported his death to the authorities as a summer fever.'
++};
++
+diff --git a/packages/characters/src/stable/old-pete.ts b/packages/characters/src/stable/old-pete.ts
+new file mode 100644
+index 0000000..ef3de44
+--- /dev/null
++++ b/packages/characters/src/stable/old-pete.ts
+@@ -0,0 +1,19 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'old-pete',
++  name: 'Peter Dunmore',
++  age: 63,
++  religion: 'Congregationalist',
++  race: 'White',
++  sex: 'Male',
++  orientation: 'Heterosexual',
++  skinTone: 'Weathered tan, deeply lined',
++  voice: 'Rasps like a mule skinner who learned poetry from whiskey-each word deliberate, laced with irony.',
++  moralCode: `Survival and silence. What you've seen stays buried with the bodies; what keeps the wagon moving is all that matters.`,
++  personality: { O: 7, C: 8, E: 6, A: 4, N: 3 },
++  conflictResolutionType: 'Deflector',
++  performanceTrait: 'Fiddler who plays jigs and funeral marches with equal precision',
++  hiddenTrait: `He knows where three different people's bodies are buried along this trail and was present at each occasion.`,
++  background: `Peter drove freight wagons and scout parties from 1820 onward, witnessing stampedes, treachery, and frontier justice he never reported. In 1835 he held a dying man's hand near Chimney Rock-a man who owed money to someone in the party. In 1839 a Chinese laborer fell from Pete's wagon outside Fort Laramie under circumstances Pete alone saw. By 1848, he's driving a traveling troupe because the frontier he knows is closing, and ghosts don't haunt someone who accepts they're always there.`,
++};
+diff --git a/packages/characters/src/stable/private-walker.ts b/packages/characters/src/stable/private-walker.ts
+new file mode 100644
+index 0000000..916613e
+--- /dev/null
++++ b/packages/characters/src/stable/private-walker.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'private-walker',
++  name: 'Isaiah Walker',
++  age: 26,
++  religion: 'Methodist',
++  race: 'Black',
++  sex: 'Male',
++  orientation: 'Heterosexual',
++  skinTone: 'Deep brown',
++  voice: 'Speaks in rapid-fire jokes and punchlines that deflect from anything real, with the precise timing of someone who has learned that laughter is survival.',
++  moralCode: 'He believes the law is a tool for other people\'s oppression; he will break any rule to maintain his freedom and will do almost anything to keep his current identity hidden.',
++  personality: { O: 7, C: 5, E: 8, A: 5, N: 7 },
++  conflictResolutionType: 'Deflector',
++  performanceTrait: 'Performs rapid-fire comedy sketches that expose human weakness with surgical precision while keeping audiences laughing.',
++  hiddenTrait: 'He is AWOL from the U.S. Army-he deserted in 1846 and there is an active warrant for his arrest. The troupe does not know his real history.',
++  background: 'Enlisted in 1844 at Fort Jefferson with the hope of escape and stability, but discovered that the Army could be as brutal as slavery. He served two years as a laborer and mess attendant, then deserted in the summer of 1846 with another soldier\'s papers and a stolen cavalry horse. He sold the horse in Kansas City and arrived at Delphine\'s troupe with a false name and a portfolio of jokes. He has the fastest hands of anyone present-a skill from his years learning pickpocketing as a child in Philadelphia.'
++};
++
+diff --git a/packages/characters/src/stable/reverend-cain.ts b/packages/characters/src/stable/reverend-cain.ts
+new file mode 100644
+index 0000000..f36edca
+--- /dev/null
++++ b/packages/characters/src/stable/reverend-cain.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'reverend-cain',
++  name: 'Obadiah Cain',
++  age: 58,
++  religion: 'Baptist',
++  race: 'White',
++  sex: 'Male',
++  orientation: 'Heterosexual',
++  skinTone: 'Pale with deep weathering',
++  voice: 'Speaks in measured cadence with absolute certainty, as if every sentence has already been weighed against scripture.',
++  moralCode: 'He believes the heathen must be saved by any necessary means; when a choice costs him, he chooses salvation over mercy.',
++  personality: { O: 3, C: 9, E: 6, A: 4, N: 7 },
++  conflictResolutionType: 'Confronter',
++  performanceTrait: 'Delivers sermons with theatrical precision, knowing exactly when to pause for dramatic effect.',
++  hiddenTrait: 'He was defrocked in Ohio for reasons he will not discuss-he covered for another minister\'s abuse of a young congregant.',
++  background: 'Pastored a successful church in Cincinnati for twenty-three years until the defrocking. He told his new congregation he felt a calling westward and took the position with the troupe to reach unreached souls, but his wife divorced him and their daughter will not see him. He carries letters he has written to her but never sends.'
++};
++
+diff --git a/packages/characters/src/stable/rosamund-hayes.ts b/packages/characters/src/stable/rosamund-hayes.ts
+new file mode 100644
+index 0000000..9499b65
+--- /dev/null
++++ b/packages/characters/src/stable/rosamund-hayes.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'rosamund-hayes',
++  name: 'Rosamund Hayes',
++  age: 41,
++  religion: 'Anglican',
++  race: 'White',
++  sex: 'Female',
++  orientation: 'Homosexual',
++  skinTone: 'Pale, freckled across the shoulders',
++  voice: 'Cuts through conversation like surgical steel-each word enunciated with an English precision that makes people assume she knows more than she does.',
++  moralCode: 'Desire matters more than propriety; the structure of society is there to be navigated, not obeyed.',
++  personality: { O: 6, C: 8, E: 5, A: 3, N: 5 },
++  conflictResolutionType: 'Confronter',
++  performanceTrait: 'Dramatic monologuist who performs poetry, dramatic readings, and philosophical recitations with commanding stage presence',
++  hiddenTrait: 'She was dismissed from her last governess position for an affair with the wife of the house.',
++  background: 'Rosamund came to America in 1835 as a governess, having left England under vague circumstances. In 1842, while governess to the Ashford family in Missouri, she became intimate with Caroline Ashford over the course of a winter. When discovered, Caroline blamed her completely; Rosamund was cast out with a character reference that sealed her from further governess work. She joined the troupe in 1844 claiming to perform dramatic arts, but she\'s spent years perfecting the authority and composure that let her seduce someone above her station.',
++};
++
+diff --git a/packages/characters/src/stable/sister-agnes.ts b/packages/characters/src/stable/sister-agnes.ts
+new file mode 100644
+index 0000000..4df96e4
+--- /dev/null
++++ b/packages/characters/src/stable/sister-agnes.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'sister-agnes',
++  name: 'Agnes Moreau',
++  age: 44,
++  religion: 'Catholic',
++  race: 'white',
++  sex: 'female',
++  orientation: 'asexual',
++  skinTone: 'pale',
++  voice: 'Measured and gentle, like someone speaking in a library-each word chosen as though it might disturb something sacred.',
++  moralCode: 'The suffering of others is nonnegotiable. She will lie, steal, or move mountains if someone is in pain. The institution can burn.',
++  personality: { O: 7, C: 8, E: 3, A: 9, N: 4 },
++  conflictResolutionType: 'Mediator',
++  performanceTrait: 'Biblical storytelling with a transfixing ability to hold silence',
++  hiddenTrait: 'She knows about Reverend Cain\'s defrocking-they were in the same diocese. The knowledge sits in her chest like a stone.',
++  background: 'Excommunicated in 1846 after she sheltered a woman fleeing her husband\'s abuse in the convent, then lied about it under oath to the bishop. She spent two years in a Boston boarding house teaching French before joining the wagon, still wearing the habit because it\'s the only life she knows how to wear.'
++};
++
+diff --git a/packages/characters/src/stable/sun-li.ts b/packages/characters/src/stable/sun-li.ts
+new file mode 100644
+index 0000000..2579ead
+--- /dev/null
++++ b/packages/characters/src/stable/sun-li.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'sun-li',
++  name: 'Sun Li',
++  age: 27,
++  religion: 'Buddhist',
++  race: 'Chinese',
++  sex: 'Female',
++  orientation: 'Homosexual',
++  skinTone: 'Pale, almost translucent in certain light',
++  voice: 'Speaks English in clipped sentences like someone translating thoughts in real-time, but moves her body with complete fluency.',
++  moralCode: 'Sacrifice for family is everything, even if family doesn\'t know they\'re being saved.',
++  personality: { O: 5, C: 8, E: 4, A: 7, N: 8 },
++  conflictResolutionType: 'Martyr',
++  performanceTrait: 'Acrobat specializing in aerial work, contortion, and feats of balance that seem physically impossible',
++  hiddenTrait: 'She is not actually Jin Wei\'s sister.',
++  background: 'Sun Li appeared at Fort Laramie in the spring of 1848 claiming to be Jin Wei\'s younger sister, following him from San Francisco. Jin Wei was shocked but accepted the explanation-family obligation is complicated. In truth, Sun Li was a performer in San Francisco\'s underground circuit who became devoted to Jin Wei, and when she learned he\'d joined a traveling troupe, she orchestrated the reunion. She told him a false family name, false origins, and a story about their mother that never happened. She acrobats with perfect precision to stay close to him, even though he cannot know that his "sister" is something far more complicated, and that her sacrifice-giving up her own found life-might never be acknowledged.',
++};
++
+diff --git a/packages/characters/src/stable/tommy-two-toes.ts b/packages/characters/src/stable/tommy-two-toes.ts
+new file mode 100644
+index 0000000..c120211
+--- /dev/null
++++ b/packages/characters/src/stable/tommy-two-toes.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'tommy-two-toes',
++  name: 'Thomas Delancy',
++  age: 45,
++  religion: 'Catholic (lapsed)',
++  race: 'White',
++  sex: 'Male',
++  orientation: 'Heterosexual',
++  skinTone: 'Ruddy Irish complexion, weathered',
++  voice: 'Fast talker with a brogue that thickens when he\'s negotiating, words tumbling out like a con man selling insurance.',
++  moralCode: 'A deal is binding only when it benefits me; generosity is a luxury for people who don\'t remember being hungry.',
++  personality: { O: 7, C: 6, E: 9, A: 4, N: 6 },
++  conflictResolutionType: 'Deflector',
++  performanceTrait: 'Physical comedian who performs acrobatics and character work based on his missing toes as a comedy hook',
++  hiddenTrait: 'He has negotiated side deals at three forts that benefited him and not the troupe.',
++  background: 'Thomas Delancy lost two toes to frostbite during the winter of 1842 while trapping in the Bighorn Mountains. Rather than see it as an ending, he reinvented himself-"Tommy Two-Toes" became a character, and his genuine limp became part of his stage presence. Delphine hired him as advance man in 1845 because he could charm fort commanders and settlers alike. What she doesn\'t know is that at Fort Niobrara he negotiated fresh mules for the troupe but kept three prime animals for himself; at Fort Laramie he sold the troupe\'s copper kettles and pocketed the difference; at Fort Bridger he arranged lodging discounts he never reported, pocketing the subsidy meant for the troupe.',
++};
++
+diff --git a/packages/characters/src/stable/two-rivers.ts b/packages/characters/src/stable/two-rivers.ts
+new file mode 100644
+index 0000000..f2efe40
+--- /dev/null
++++ b/packages/characters/src/stable/two-rivers.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'two-rivers',
++  name: 'Mary Two Rivers',
++  age: 28,
++  religion: 'Traditional Shoshone',
++  race: 'Shoshone',
++  sex: 'Female',
++  orientation: 'Heterosexual',
++  skinTone: 'Copper brown',
++  voice: 'Speaks rarely and only when it matters, with the calm precision of someone counting the distance to the horizon.',
++  moralCode: 'She believes in protecting her people first, the land second, and everyone else according to what they have already done.',
++  personality: { O: 5, C: 8, E: 3, A: 5, N: 4 },
++  conflictResolutionType: 'Avoider',
++  performanceTrait: 'Demonstrates elaborate traditional dances that tell stories of animals and seasons; her body moves with complete authority.',
++  hiddenTrait: 'She is being paid by the U.S. Army to report on any unusual frontier activity-the officer made it clear her cooperation would improve her family\'s position near Fort Hall.',
++  background: 'Her family was displaced from their traditional hunting grounds near the Bear River in 1844. She joined Delphine\'s troupe two years ago after the Army approached her with the proposition; she sends money home quarterly through an officer at Fort Laramie. She knows this traveling show is partly a scouting operation for settlement patterns and is uncertain whether she is betraying her people or saving them.'
++};
++
+diff --git a/packages/characters/src/stable/wolf-shirt.ts b/packages/characters/src/stable/wolf-shirt.ts
+new file mode 100644
+index 0000000..0386000
+--- /dev/null
++++ b/packages/characters/src/stable/wolf-shirt.ts
+@@ -0,0 +1,20 @@
++import type { Character } from '../schema';
++
++export const character: Character = {
++  id: 'wolf-shirt',
++  name: 'Wolf Shirt',
++  age: 30,
++  religion: 'Blackfoot traditional (maintains both)',
++  race: 'Blackfoot',
++  sex: 'Male',
++  orientation: 'Heterosexual',
++  skinTone: 'Deep brown',
++  voice: 'Switches between languages like a person changing registers on a pipe organ-same ease, different worlds.',
++  moralCode: 'Information is currency and trust is a negotiable asset; serve your people first, the wagon second, and yourself whenever possible.',
++  personality: { O: 9, C: 6, E: 8, A: 5, N: 2 },
++  conflictResolutionType: 'Mediator',
++  performanceTrait: 'Storyteller who performs oral narratives with physical comedy and linguistic wordplay across multiple languages',
++  hiddenTrait: 'His "trading" carries messages between Blackfoot leaders that the U.S. government would find interesting.',
++  background: 'Wolf Shirt was born near the headwaters of the Missouri and trained as a trader-diplomat between Blackfoot nations and white settlements. He speaks Blackfoot, English, French, and Crow, moving between worlds so smoothly that neither fully claims him. Since 1844, he\'s used the troupe\'s schedule and cover to carry intelligence between tribal leaders-warnings about military movements, details about land agreements, messages about supply routes. He performs genuinely because he finds the whole enterprise hilarious; the white people paying to watch him tell stories have no idea he\'s translating geopolitics into jest.',
++};
++
+diff --git a/packages/game-engine/package.json b/packages/game-engine/package.json
+new file mode 100644
+index 0000000..38ba61c
+--- /dev/null
++++ b/packages/game-engine/package.json
+@@ -0,0 +1,20 @@
++{
++  "name": "@whoreagon-trail/game-engine",
++  "version": "0.1.0",
++  "private": true,
++  "main": "./src/index.ts",
++  "types": "./src/index.ts",
++  "scripts": {
++    "typecheck": "tsc --noEmit"
++  },
++  "dependencies": {
++    "@whoreagon-trail/characters": "*"
++  },
++  "devDependencies": {
++    "typescript": "^5.3.3"
++  },
++  "peerDependencies": {
++    "react": "18.3.1",
++    "@react-native-async-storage/async-storage": "*"
++  }
++}
+diff --git a/packages/game-engine/src/index.ts b/packages/game-engine/src/index.ts
+new file mode 100644
+index 0000000..07428c6
+--- /dev/null
++++ b/packages/game-engine/src/index.ts
+@@ -0,0 +1,32 @@
++/**
++ * @whoreagon-trail/game-engine
++ *
++ * Core game state machine, types, and the useGameState hook.
++ */
++
++export {
++  // Types
++  type Phase,
++  type ResourceState,
++  type PartyMember,
++  type StressTag,
++  type EventHistoryEntry,
++  type TrailLocation,
++  type GameState,
++  type GameAction,
++  type CharacterId,
++
++  // Constants
++  DEFAULT_RESOURCES,
++  CONSUMPTION_RATES,
++  TRAIL_WAYPOINTS,
++
++  // Reducer
++  gameReducer,
++
++  // Utilities
++  getRelationshipLabel,
++
++  // Hook
++  useGameState,
++} from './state';
+diff --git a/packages/game-engine/src/state.ts b/packages/game-engine/src/state.ts
+new file mode 100644
+index 0000000..3e004e9
+--- /dev/null
++++ b/packages/game-engine/src/state.ts
+@@ -0,0 +1,423 @@
++/**
++ * Core game state machine for Whoreagon Trail.
++ *
++ * Contains all types, the reducer, constants, and the useGameState hook.
++ * State is persisted to AsyncStorage under 'game:currentRun'.
++ */
++
++import AsyncStorage from '@react-native-async-storage/async-storage';
++import {
++  type Character,
++  type CharacterId,
++  type RelationshipMatrix,
++  createRelationshipMatrix,
++  getRelationshipLabel,
++} from '@whoreagon-trail/characters';
++import { useState, useEffect, useReducer, useCallback, useRef } from 'react';
++
++// ── Re-export for consumers ──────────────────────────────────────────────────
++export { getRelationshipLabel };
++export type { CharacterId };
++
++// ── Phase ────────────────────────────────────────────────────────────────────
++
++export type Phase = 'PROLOGUE' | 'SETUP' | 'TRAIL' | 'FORT' | 'FINALE' | 'END';
++
++// ── ResourceState ────────────────────────────────────────────────────────────
++
++export type ResourceState = {
++  food: number;       // pounds
++  water: number;      // barrels
++  money: number;      // dollars
++  oxenHealth: number; // 0-100
++  wagonHealth: number; // 0-100
++  ammunition: number;
++  medicine: number;
++  wagonParts: {
++    wheels: number;
++    axles: number;
++    tongues: number;
++  };
++};
++
++// ── PartyMember ──────────────────────────────────────────────────────────────
++
++export type PartyMember = Character & {
++  health: number;    // 0-100
++  isAlive: boolean;
++  joinedOnDay: number;
++};
++
++// ── StressTag ────────────────────────────────────────────────────────────────
++
++export type StressTag =
++  | 'survival'
++  | 'loss'
++  | 'betrayal'
++  | 'friendship'
++  | 'sacrifice'
++  | 'conflict'
++  | 'discovery'
++  | 'achievement';
++
++// ── EventHistoryEntry ────────────────────────────────────────────────────────
++
++export type EventHistoryEntry = {
++  day: number;
++  type: string;
++  description: string;
++  stressTag?: StressTag;
++  involvedCharacterIds: CharacterId[];
++  location: string;
++};
++
++// ── TrailLocation ────────────────────────────────────────────────────────────
++
++export type TrailLocation =
++  | 'independence_mo'
++  | 'fort_kearney'
++  | 'chimney_rock'
++  | 'fort_laramie'
++  | 'south_pass'
++  | 'fort_bridger'
++  | 'fort_hall'
++  | 'fort_boise'
++  | 'the_dalles'
++  | 'oregon_city';
++
++// ── GameState ────────────────────────────────────────────────────────────────
++
++export type GameState = {
++  runId: string;
++  phase: Phase;
++  day: number;
++  location: TrailLocation;
++  party: PartyMember[];
++  resources: ResourceState;
++  relationshipMatrix: RelationshipMatrix;
++  eventHistory: EventHistoryEntry[]; // capped at last 50
++  flags: string[];
++  money: number;
++};
++
++// ── Default resource values for a new run ────────────────────────────────────
++
++export const DEFAULT_RESOURCES: ResourceState = {
++  food: 0,
++  water: 0,
++  money: 0,
++  oxenHealth: 100,
++  wagonHealth: 100,
++  ammunition: 0,
++  medicine: 0,
++  wagonParts: { wheels: 2, axles: 1, tongues: 1 },
++};
++
++// ── Resource consumption per day per person at each pace ─────────────────────
++
++export const CONSUMPTION_RATES = {
++  rest:     { food: 1.5, water: 0.3 },
++  steady:   { food: 2.0, water: 0.4 },
++  grueling: { food: 2.5, water: 0.6 },
++};
++
++// ── Trail waypoints in order ─────────────────────────────────────────────────
++
++export const TRAIL_WAYPOINTS: TrailLocation[] = [
++  'independence_mo',
++  'fort_kearney',
++  'chimney_rock',
++  'fort_laramie',
++  'south_pass',
++  'fort_bridger',
++  'fort_hall',
++  'fort_boise',
++  'the_dalles',
++  'oregon_city',
++];
++
++// ── Storage key ──────────────────────────────────────────────────────────────
++
++const STORAGE_KEY = 'game:currentRun';
++
++// ── GameAction ───────────────────────────────────────────────────────────────
++
++export type GameAction =
++  | { type: 'START_RUN'; party: Character[] }
++  | { type: 'SET_PHASE'; phase: Phase }
++  | { type: 'ADVANCE_DAY'; pace: 'rest' | 'steady' | 'grueling' }
++  | { type: 'UPDATE_RESOURCES'; changes: Partial<ResourceState> }
++  | { type: 'APPLY_RELATIONSHIP_DELTA'; characterA: CharacterId; characterB: CharacterId; delta: number }
++  | { type: 'ADD_EVENT'; entry: EventHistoryEntry }
++  | { type: 'SET_FLAG'; flag: string }
++  | { type: 'REMOVE_FLAG'; flag: string }
++  | { type: 'UPDATE_CHARACTER_HEALTH'; characterId: CharacterId; health: number }
++  | { type: 'MARK_CHARACTER_DEAD'; characterId: CharacterId }
++  | { type: 'END_RUN' };
++
++// ── Helpers ──────────────────────────────────────────────────────────────────
++
++function clamp(value: number, min: number, max: number): number {
++  return Math.max(min, Math.min(max, value));
++}
++
++function generateRunId(): string {
++  return `run_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
++}
++
++// ── Reducer ──────────────────────────────────────────────────────────────────
++
++export function gameReducer(state: GameState, action: GameAction): GameState {
++  switch (action.type) {
++    case 'START_RUN': {
++      const party: PartyMember[] = action.party.map((c) => ({
++        ...c,
++        health: 100,
++        isAlive: true,
++        joinedOnDay: 0,
++      }));
++
++      return {
++        runId: generateRunId(),
++        phase: 'PROLOGUE',
++        day: 0,
++        location: 'independence_mo',
++        party,
++        resources: { ...DEFAULT_RESOURCES, wagonParts: { ...DEFAULT_RESOURCES.wagonParts } },
++        relationshipMatrix: createRelationshipMatrix(action.party),
++        eventHistory: [],
++        flags: [],
++        money: 0,
++      };
++    }
++
++    case 'SET_PHASE': {
++      return { ...state, phase: action.phase };
++    }
++
++    case 'ADVANCE_DAY': {
++      // Increment day
++      const newDay = state.day + 1;
++
++      // Deduct food and water based on party size × pace consumption rate
++      const aliveCount = state.party.filter((m) => m.isAlive).length;
++      const rate = CONSUMPTION_RATES[action.pace];
++      const foodCost = aliveCount * rate.food;
++      const waterCost = aliveCount * rate.water;
++
++      const newResources: ResourceState = {
++        ...state.resources,
++        wagonParts: { ...state.resources.wagonParts },
++        food: Math.max(0, state.resources.food - foodCost),
++        water: Math.max(0, state.resources.water - waterCost),
++      };
++
++      // Cap eventHistory at 50 entries (drop oldest first)
++      const cappedHistory =
++        state.eventHistory.length > 50
++          ? state.eventHistory.slice(state.eventHistory.length - 50)
++          : state.eventHistory;
++
++      return {
++        ...state,
++        day: newDay,
++        resources: newResources,
++        money: newResources.money,
++        eventHistory: cappedHistory,
++      };
++    }
++
++    case 'UPDATE_RESOURCES': {
++      const newResources = { ...state.resources, wagonParts: { ...state.resources.wagonParts } };
++
++      for (const [key, value] of Object.entries(action.changes)) {
++        if (key === 'wagonParts' && typeof value === 'object' && value !== null) {
++          newResources.wagonParts = {
++            ...newResources.wagonParts,
++            ...(value as Partial<ResourceState['wagonParts']>),
++          };
++        } else if (key !== 'wagonParts') {
++          (newResources as Record<string, unknown>)[key] = value;
++        }
++      }
++
++      // Clamp health-like values
++      newResources.oxenHealth = clamp(newResources.oxenHealth, 0, 100);
++      newResources.wagonHealth = clamp(newResources.wagonHealth, 0, 100);
++      newResources.food = Math.max(0, newResources.food);
++      newResources.water = Math.max(0, newResources.water);
++      newResources.ammunition = Math.max(0, newResources.ammunition);
++      newResources.medicine = Math.max(0, newResources.medicine);
++      newResources.money = Math.max(0, newResources.money);
++
++      return {
++        ...state,
++        resources: newResources,
++        money: newResources.money,
++      };
++    }
++
++    case 'APPLY_RELATIONSHIP_DELTA': {
++      const { characterA, characterB, delta } = action;
++      const matrix = { ...state.relationshipMatrix };
++
++      if (!matrix[characterA]) matrix[characterA] = {};
++      if (!matrix[characterB]) matrix[characterB] = {};
++
++      matrix[characterA] = {
++        ...matrix[characterA],
++        [characterB]: clamp((matrix[characterA][characterB] ?? 0) + delta, -100, 100),
++      };
++      matrix[characterB] = {
++        ...matrix[characterB],
++        [characterA]: clamp((matrix[characterB][characterA] ?? 0) + delta, -100, 100),
++      };
++
++      return { ...state, relationshipMatrix: matrix };
++    }
++
++    case 'ADD_EVENT': {
++      const newHistory = [...state.eventHistory, action.entry];
++      // Cap at 50 entries, drop oldest first
++      const capped = newHistory.length > 50 ? newHistory.slice(newHistory.length - 50) : newHistory;
++      return { ...state, eventHistory: capped };
++    }
++
++    case 'SET_FLAG': {
++      if (state.flags.includes(action.flag)) return state;
++      return { ...state, flags: [...state.flags, action.flag] };
++    }
++
++    case 'REMOVE_FLAG': {
++      return { ...state, flags: state.flags.filter((f) => f !== action.flag) };
++    }
++
++    case 'UPDATE_CHARACTER_HEALTH': {
++      return {
++        ...state,
++        party: state.party.map((m) =>
++          m.id === action.characterId
++            ? { ...m, health: clamp(action.health, 0, 100) }
++            : m
++        ),
++      };
++    }
++
++    case 'MARK_CHARACTER_DEAD': {
++      return {
++        ...state,
++        party: state.party.map((m) =>
++          m.id === action.characterId
++            ? { ...m, isAlive: false, health: 0 }
++            : m
++        ),
++      };
++    }
++
++    case 'END_RUN': {
++      // Clear AsyncStorage key (fire-and-forget)
++      AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
++      return { ...state, phase: 'END' };
++    }
++
++    default: {
++      return state;
++    }
++  }
++}
++
++// ── useGameState hook ────────────────────────────────────────────────────────
++
++/**
++ * Primary hook for accessing game state.
++ *
++ * Returns { state, dispatch } where state is GameState | null.
++ * - State loaded from AsyncStorage on mount under key 'game:currentRun'.
++ * - Persisted to AsyncStorage on every state change.
++ * - If no saved state, returns null (not an empty state — the UI needs to
++ *   know there's no active run).
++ */
++export function useGameState(): {
++  state: GameState | null;
++  dispatch: (action: GameAction) => void;
++} {
++  const [isHydrated, setIsHydrated] = useState(false);
++  const [hasDispatched, setHasDispatched] = useState(false);
++  const [savedState, setSavedState] = useState<GameState | null>(null);
++  const hydratedRef = useRef(false);
++
++  // Sentinel initial state for useReducer (only used after first dispatch)
++  const initialState: GameState = {
++    runId: '',
++    phase: 'PROLOGUE',
++    day: 0,
++    location: 'independence_mo',
++    party: [],
++    resources: { ...DEFAULT_RESOURCES, wagonParts: { ...DEFAULT_RESOURCES.wagonParts } },
++    relationshipMatrix: {},
++    eventHistory: [],
++    flags: [],
++    money: 0,
++  };
++
++  const [reducerState, rawDispatch] = useReducer(gameReducer, initialState);
++
++  // Load from AsyncStorage on mount
++  useEffect(() => {
++    let cancelled = false;
++
++    async function hydrate() {
++      try {
++        const raw = await AsyncStorage.getItem(STORAGE_KEY);
++        if (cancelled) return;
++        if (raw) {
++          const parsed: GameState = JSON.parse(raw);
++          setSavedState(parsed);
++        }
++      } catch {
++        // Corrupted save — start fresh
++        console.warn('[game-engine] Failed to hydrate state from AsyncStorage');
++      } finally {
++        if (!cancelled) {
++          hydratedRef.current = true;
++          setIsHydrated(true);
++        }
++      }
++    }
++
++    hydrate();
++    return () => { cancelled = true; };
++  }, []);
++
++  // Determine the "live" state:
++  // - Before hydration: null
++  // - After hydration with no saved state and no dispatches: null
++  // - After hydration with saved state and no dispatches: savedState
++  // - After any dispatch: reducerState (if it has a runId)
++  const currentState: GameState | null = !isHydrated
++    ? null
++    : hasDispatched
++      ? (reducerState.runId ? reducerState : null)
++      : savedState;
++
++  // Persist to AsyncStorage on every meaningful state change
++  useEffect(() => {
++    if (!isHydrated) return;
++    if (!currentState) return;
++    if (!currentState.runId) return;
++
++    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentState)).catch((err) => {
++      console.warn('[game-engine] Failed to persist state:', err);
++    });
++  }, [currentState, isHydrated]);
++
++  const dispatch = useCallback(
++    (action: GameAction) => {
++      setHasDispatched(true);
++      rawDispatch(action);
++    },
++    []
++  );
++
++  return { state: currentState, dispatch };
++}
+-- 
+2.34.1
+
