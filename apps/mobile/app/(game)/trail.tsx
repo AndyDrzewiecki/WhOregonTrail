@@ -21,6 +21,8 @@ import {
 } from '@whoreagon-trail/game-engine';
 import { type AIResponse } from '@whoreagon-trail/ai-client';
 import EventCard from '@/src/components/EventCard';
+import PartyModal from '@/src/components/PartyModal';
+import TrailMap from '@/src/components/TrailMap';
 import { COLORS } from '@/src/constants/colors';
 
 const FORT_WAYPOINTS: TrailLocation[] = [
@@ -52,6 +54,8 @@ export default function TrailScreen() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [activeEvent, setActiveEvent] = useState<TrailEventTemplate | null>(null);
   const [recentDeaths, setRecentDeaths] = useState<string[]>([]);
+  const [showParty, setShowParty] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
   if (state === null) {
     return (
@@ -69,29 +73,30 @@ export default function TrailScreen() {
     if (isAdvancing) return;
     setIsAdvancing(true);
 
-    // Snapshot alive members before advance (to detect deaths after)
-    const aliveBeforeIds = state.party.filter(m => m.isAlive).map(m => m.id);
+    // Project resource/health values locally (dispatch is async, state is stale)
+    const aliveCount = state.party.filter(m => m.isAlive).length;
+    const rate = CONSUMPTION_RATES[pace];
+    const projectedFood = state.resources.food - aliveCount * rate.food;
+    const projectedWater = state.resources.water - aliveCount * rate.water;
+    const willStarve = projectedFood <= 0 || projectedWater <= 0;
+
+    // Project who will die from starvation this tick
+    const deathNames: string[] = [];
+    const projectedAlive = state.party.filter(m => {
+      if (!m.isAlive) return false;
+      if (willStarve && m.health - 5 <= 0) {
+        deathNames.push(m.name);
+        return false;
+      }
+      return true;
+    });
 
     // Advance day - engine handles resource consumption, miles, starvation, deaths
     dispatch({ type: 'ADVANCE_DAY', pace });
 
-    // Detect deaths (project: anyone with health <= 5 when starving)
-    const isStarving = state.resources.food <= 0 || state.resources.water <= 0;
-    if (isStarving) {
-      const newlyDead = state.party
-        .filter(m => aliveBeforeIds.includes(m.id) && m.health <= 5)
-        .map(m => m.name);
-      if (newlyDead.length > 0) {
-        setRecentDeaths(newlyDead);
-      }
+    if (deathNames.length > 0) {
+      setRecentDeaths(deathNames);
     }
-
-    // Check all dead → end screen
-    const projectedAlive = state.party.filter(m => {
-      if (!m.isAlive) return false;
-      if (isStarving && m.health <= 5) return false;
-      return true;
-    });
     if (projectedAlive.length === 0) {
       dispatch({ type: 'SET_PHASE', phase: 'END' });
       router.replace('/(game)/end');
@@ -136,6 +141,25 @@ export default function TrailScreen() {
   };
 
   const handleEventResolved = (response: AIResponse) => {
+    // Apply health changes from events (can kill characters)
+    if (response.eventOutcome?.healthChanges) {
+      const eventDeaths: string[] = [];
+      for (const hc of response.eventOutcome.healthChanges) {
+        const member = state.party.find(m => m.id === hc.characterId);
+        if (member && member.isAlive) {
+          const newHealth = Math.max(0, member.health + hc.delta);
+          dispatch({ type: 'UPDATE_CHARACTER_HEALTH', characterId: hc.characterId, health: newHealth });
+          if (newHealth <= 0) {
+            dispatch({ type: 'MARK_CHARACTER_DEAD', characterId: hc.characterId });
+            eventDeaths.push(member.name);
+          }
+        }
+      }
+      if (eventDeaths.length > 0) {
+        setRecentDeaths(prev => [...prev, ...eventDeaths]);
+      }
+    }
+
     // Apply resource changes
     if (response.eventOutcome?.resourceChanges) {
       const changes = response.eventOutcome.resourceChanges;
@@ -219,6 +243,14 @@ export default function TrailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.dayText}>Day {state.day}</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => setShowParty(true)} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>Party</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowMap(true)} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>Map</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.locationText}>
           {state.milesUntilNextStop > 0 && currentIndex < TRAIL_WAYPOINTS.length - 1
             ? `${state.milesUntilNextStop} mi to ${getLocationDisplayName(TRAIL_WAYPOINTS[currentIndex + 1])}`
@@ -331,8 +363,33 @@ export default function TrailScreen() {
           gameState={state}
           onResolved={handleEventResolved}
           onDismiss={() => setActiveEvent(null)}
+          onChoiceIntercept={(choice) => {
+            if (activeEvent.type === 'hunting_opportunity' && choice.toLowerCase().includes('hunt it')) {
+              setActiveEvent(null);
+              router.push('/(game)/minigame/hunting');
+              return true;
+            }
+            return false;
+          }}
         />
       )}
+
+      {/* Party modal */}
+      <PartyModal
+        visible={showParty}
+        party={state.party}
+        relationshipMatrix={state.relationshipMatrix}
+        playerId={state.party[0]?.id ?? ''}
+        onClose={() => setShowParty(false)}
+      />
+
+      {/* Trail map modal */}
+      <TrailMap
+        visible={showMap}
+        currentLocation={state.location}
+        totalMilesTraveled={state.totalMilesTraveled}
+        onClose={() => setShowMap(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -367,10 +424,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    flexWrap: 'wrap',
   },
   dayText: {
     fontSize: 14,
     color: COLORS.cream,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.goldDim,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 2,
+  },
+  headerBtnText: {
+    fontSize: 11,
+    color: COLORS.goldDim,
+    letterSpacing: 1,
   },
   locationText: {
     fontSize: 13,

@@ -17,7 +17,7 @@ import { useState, useEffect, useReducer, useCallback, useRef } from 'react';
 
 // ── Re-export for consumers ──────────────────────────────────────────────────
 export { getRelationshipLabel };
-export type { CharacterId };
+export type { CharacterId, RelationshipMatrix };
 
 // ── Phase ────────────────────────────────────────────────────────────────────
 
@@ -285,6 +285,30 @@ export function selectTrailEvent(state: GameState): TrailEventTemplate | null {
   if (!eligible.length) return null;
   return eligible[Math.floor(Math.random() * eligible.length)];
 }
+
+// ── Minigame config ─────────────────────────────────────────────────────────
+
+export type MinigameConfig = {
+  id: string;
+  title: string;
+  durationMs: number;
+  targetCount: number;
+  spawnIntervalMs: number;
+  targetLifetimeMs: number;
+  reward: Partial<ResourceState>;
+  penaltyPerMiss?: Partial<ResourceState>;
+};
+
+export const HUNTING_MINIGAME: MinigameConfig = {
+  id: 'hunting',
+  title: 'HUNTING',
+  durationMs: 15000,
+  targetCount: 8,
+  spawnIntervalMs: 1500,
+  targetLifetimeMs: 2000,
+  reward: { food: 40 },
+  penaltyPerMiss: { ammunition: -1 },
+};
 
 // ── Storage key ──────────────────────────────────────────────────────────────
 

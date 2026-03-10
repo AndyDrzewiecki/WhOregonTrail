@@ -17,6 +17,8 @@ export {
   type GameAction,
   type EventOutcome,
   type CharacterId,
+  type MinigameConfig,
+  type RelationshipMatrix,
 
   // Constants
   DEFAULT_RESOURCES,
@@ -24,6 +26,7 @@ export {
   MILES_PER_DAY,
   TRAIL_WAYPOINTS,
   TRAIL_EVENTS,
+  HUNTING_MINIGAME,
 
   // Reducer
   gameReducer,
@@ -31,6 +34,7 @@ export {
   // Utilities
   getRelationshipLabel,
   getLocationDisplayName,
+  getMilesBetween,
   selectTrailEvent,
 
   // Hook

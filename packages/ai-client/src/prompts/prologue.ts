@@ -11,6 +11,26 @@ HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The 
 
 RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
 
+Each character in the GAME STATE has a "personality" object with OCEAN scores (O/C/E/A/N, 1-10), a "voice" string describing how they talk, and a "moralCode" string describing their values. Use these to differentiate dialogue — a high-E character talks more, a high-N character worries aloud, a low-A character picks fights.
+
 Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
 
-Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.
+
+EXAMPLE RESPONSE:
+{
+  "dialogue": [
+    { "characterId": "rev_cain", "text": "You look like trouble. Good. We need trouble.", "tone": "wry" },
+    { "characterId": "mei_lin", "text": "I have seen worse company on a steamboat.", "tone": "dry" }
+  ],
+  "relationshipDeltas": { "rev_cain": 5, "mei_lin": 3 },
+  "eventOutcome": {
+    "result": "success",
+    "description": "The troupe forms an uneasy alliance over whiskey and mutual desperation.",
+    "resourceChanges": { "money": -2 },
+    "healthChanges": []
+  },
+  "newFlags": ["troupe_formed"],
+  "stressTag": "discovery",
+  "relationshipLabel": "Strangers sizing each other up"
+}`;

@@ -34,6 +34,7 @@ export type EventOutcome = {
     ammunition: number;
     medicine: number;
   }>;
+  healthChanges?: Array<{ characterId: string; delta: number }>;
 };
 
 export type StressTag =
@@ -133,7 +134,40 @@ function parseAIResponse(raw: string): AIResponse {
 }
 
 function gameStateToUserMessage(gameState: GameState, extra: string): string {
-  return `GAME STATE:\n${JSON.stringify(gameState, null, 2)}\n\n${extra}`;
+  const party = gameState.party
+    .filter((m) => m.isAlive)
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      health: m.health,
+      personality: (m as Record<string, unknown>).personality,
+      voice: (m as Record<string, unknown>).voice,
+      moralCode: (m as Record<string, unknown>).moralCode,
+      performanceTrait: (m as Record<string, unknown>).performanceTrait,
+    }));
+
+  const playerRelationships: Record<string, number> = {};
+  const playerId = gameState.party[0]?.id;
+  if (playerId && gameState.relationshipMatrix[playerId]) {
+    for (const [id, score] of Object.entries(gameState.relationshipMatrix[playerId])) {
+      playerRelationships[id] = score;
+    }
+  }
+
+  const recentEvents = gameState.eventHistory.slice(-5);
+
+  const summary = {
+    day: gameState.day,
+    location: gameState.location,
+    phase: gameState.phase,
+    resources: gameState.resources,
+    party,
+    playerRelationships,
+    recentEvents,
+    flags: gameState.flags,
+  };
+
+  return `GAME STATE:\n${JSON.stringify(summary, null, 2)}\n\n${extra}`;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────

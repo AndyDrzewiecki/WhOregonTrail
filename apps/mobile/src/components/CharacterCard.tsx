@@ -27,13 +27,13 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
 
   // Determine top 3 personality descriptors
   const descriptors = useMemo(() => {
-    const ocean = character.ocean || { o: 0, c: 0, e: 0, a: 0, n: 0 };
+    const p = character.personality ?? { O: 0, C: 0, E: 0, A: 0, N: 0 };
     const dimensions = [
-      { label: 'Curious mind', key: 'o', score: ocean.o },
-      { label: 'Keeps the accounts', key: 'c', score: ocean.c },
-      { label: 'Fills the room', key: 'e', score: ocean.e },
-      { label: 'Keeps the peace', key: 'a', score: ocean.a },
-      { label: 'Carries the weight', key: 'n', score: ocean.n },
+      { label: 'Curious mind', key: 'O', score: p.O },
+      { label: 'Keeps the accounts', key: 'C', score: p.C },
+      { label: 'Fills the room', key: 'E', score: p.E },
+      { label: 'Keeps the peace', key: 'A', score: p.A },
+      { label: 'Carries the weight', key: 'N', score: p.N },
     ];
 
     const sorted = dimensions.sort((a, b) => b.score - a.score);
@@ -44,16 +44,16 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
         return dim.label;
       } else {
         const nameMap: Record<string, string> = {
-          o: 'Openness',
-          c: 'Conscientiousness',
-          e: 'Extraversion',
-          a: 'Agreeableness',
-          n: 'Neuroticism',
+          O: 'Openness',
+          C: 'Conscientiousness',
+          E: 'Extraversion',
+          A: 'Agreeableness',
+          N: 'Neuroticism',
         };
         return `${nameMap[dim.key]}: ${dim.score}`;
       }
     });
-  }, [character.ocean]);
+  }, [character.personality]);
 
   const borderColor = isRevealed ? COLORS.gold : COLORS.goldDim;
   const transform = isSelected ? [{ scale: 1.03 }] : [];

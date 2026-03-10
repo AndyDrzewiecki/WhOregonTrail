@@ -11,6 +11,26 @@ HISTORICAL CONTEXT: This is 1848. The Mexican-American War ended this year. The 
 
 RESPONSE FORMAT: Return ONLY valid JSON matching the AIResponse schema. No preamble, no markdown, no explanation. Just JSON.
 
+Each character in the GAME STATE has a "personality" object with OCEAN scores (O/C/E/A/N, 1-10), a "voice" string describing how they talk, and a "moralCode" string describing their values. Use these to differentiate dialogue — campfire scenes thrive on interpersonal tension and vulnerability.
+
 Classify the emotional register of what just happened with a stressTag from: survival, loss, betrayal, friendship, sacrifice, conflict, discovery, achievement.
 
-Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.`;
+Set relationshipLabel to a human-readable description of the key relationship dynamic in this scene.
+
+EXAMPLE RESPONSE:
+{
+  "dialogue": [
+    { "characterId": "belle_starr", "text": "You ever wonder if Oregon's just another word for nowhere?", "tone": "vulnerable" },
+    { "characterId": "rev_cain", "text": "Nowhere is where God does His best work.", "tone": "quiet" }
+  ],
+  "relationshipDeltas": { "belle_starr": 8, "rev_cain": 5 },
+  "eventOutcome": {
+    "result": "success",
+    "description": "An unexpected moment of honesty around the fire. Old walls come down, just a little.",
+    "resourceChanges": {},
+    "healthChanges": []
+  },
+  "newFlags": ["campfire_vulnerability"],
+  "stressTag": "friendship",
+  "relationshipLabel": "Unlikely kinship forming in the dark"
+}`;

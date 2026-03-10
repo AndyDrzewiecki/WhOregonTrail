@@ -17,16 +17,18 @@ interface EventCardProps {
   gameState: GameState;
   onResolved: (response: AIResponse) => void;
   onDismiss: () => void;
+  onChoiceIntercept?: (choiceText: string) => boolean;
 }
 
 type CardPhase = 'choice' | 'loading' | 'outcome';
 
-export default function EventCard({ event, gameState, onResolved, onDismiss }: EventCardProps) {
+export default function EventCard({ event, gameState, onResolved, onDismiss, onChoiceIntercept }: EventCardProps) {
   const [phase, setPhase] = useState<CardPhase>('choice');
   const [response, setResponse] = useState<AIResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleChoicePress = async (choiceText: string) => {
+    if (onChoiceIntercept?.(choiceText)) return;
     setPhase('loading');
     setError(null);
     try {
@@ -50,9 +52,19 @@ export default function EventCard({ event, gameState, onResolved, onDismiss }: E
     onDismiss();
   };
 
+  const RESOURCE_LABELS: Record<string, string> = {
+    food: 'Food',
+    water: 'Water',
+    money: 'Money',
+    oxenHealth: 'Oxen',
+    wagonHealth: 'Wagon',
+    ammunition: 'Ammo',
+    medicine: 'Medicine',
+  };
+
   const renderResourceChange = (key: string, value: number) => {
     const isGain = value > 0;
-    const label = key.charAt(0).toUpperCase() + key.slice(1);
+    const label = RESOURCE_LABELS[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
     return (
       <Text
         key={key}
