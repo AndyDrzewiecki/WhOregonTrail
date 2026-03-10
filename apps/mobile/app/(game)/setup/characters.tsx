@@ -83,7 +83,7 @@ export default function CharactersScreen() {
     // Dispatch add party members
     dispatch({
       type: 'ADD_PARTY_MEMBERS',
-      payload: [...selectedCharacters, ...randomCharacters],
+      members: [...selectedCharacters, ...randomCharacters],
     });
 
     // Navigate to supplies

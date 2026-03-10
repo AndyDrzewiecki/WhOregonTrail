@@ -80,7 +80,7 @@ export default function SuppliesScreen() {
   const handleDepart = () => {
     dispatch({
       type: 'UPDATE_RESOURCES',
-      payload: {
+      changes: {
         food: quantities.food,
         water: quantities.water,
         ammunition: quantities.ammunition * 20,
@@ -98,7 +98,7 @@ export default function SuppliesScreen() {
 
     dispatch({
       type: 'SET_PHASE',
-      payload: { phase: 'TRAIL' },
+      phase: 'TRAIL',
     });
 
     router.push('/(game)/trail');

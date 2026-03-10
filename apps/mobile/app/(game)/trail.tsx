@@ -1,22 +1,347 @@
-/**
- * TRAIL SCREEN
- *
- * The main travel loop. Displays:
- * - Map (React Native Skia canvas — Issue 4+)
- * - Resource bar (food, water, medicine, money, morale)
- * - Day counter
- * - Random event trigger zone
- *
- * TODO Issue 4: wire useGameState
- * TODO: wire Skia trail map renderer
- * TODO Issue 2: wire resolveEvent for trail events
- */
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import {
+  useGameState,
+  TRAIL_WAYPOINTS,
+  CONSUMPTION_RATES,
+  MILES_PER_DAY,
+  getLocationDisplayName,
+  selectTrailEvent,
+  type TrailEventTemplate,
+  type TrailLocation,
+} from '@whoreagon-trail/game-engine';
+import { type AIResponse } from '@whoreagon-trail/ai-client';
+import EventCard from '@/src/components/EventCard';
+import { COLORS } from '@/src/constants/colors';
+
+const FORT_WAYPOINTS: TrailLocation[] = [
+  'fort_kearney',
+  'fort_laramie',
+  'fort_bridger',
+  'fort_hall',
+  'fort_boise',
+  'the_dalles',
+];
+
+type Pace = 'rest' | 'steady' | 'grueling';
+
+const PACE_LABELS: Record<Pace, string> = {
+  rest:     'Rest',
+  steady:   'Steady',
+  grueling: 'Grueling',
+};
+
+const PACE_NOTES: Record<Pace, string> = {
+  rest:     '1.5 lb/person',
+  steady:   '2.0 lb/person',
+  grueling: '2.5 lb/person',
+};
 
 export default function TrailScreen() {
+  const { state, dispatch } = useGameState();
+  const [pace, setPace] = useState<Pace>('steady');
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<TrailEventTemplate | null>(null);
+  const [recentDeaths, setRecentDeaths] = useState<string[]>([]);
+
+  if (state === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  const aliveMembers = state.party.filter((m) => m.isAlive);
+  const currentIndex = TRAIL_WAYPOINTS.indexOf(state.location);
+  const progress = currentIndex / (TRAIL_WAYPOINTS.length - 1);
+
+  const handleAdvanceDay = async () => {
+    if (isAdvancing) return;
+    setIsAdvancing(true);
+
+    // Snapshot alive members before advance (to detect deaths after)
+    const aliveBeforeIds = state.party.filter(m => m.isAlive).map(m => m.id);
+
+    // Advance day - engine handles resource consumption, miles, starvation, deaths
+    dispatch({ type: 'ADVANCE_DAY', pace });
+
+    // Detect deaths (project: anyone with health <= 5 when starving)
+    const isStarving = state.resources.food <= 0 || state.resources.water <= 0;
+    if (isStarving) {
+      const newlyDead = state.party
+        .filter(m => aliveBeforeIds.includes(m.id) && m.health <= 5)
+        .map(m => m.name);
+      if (newlyDead.length > 0) {
+        setRecentDeaths(newlyDead);
+      }
+    }
+
+    // Check all dead → end screen
+    const projectedAlive = state.party.filter(m => {
+      if (!m.isAlive) return false;
+      if (isStarving && m.health <= 5) return false;
+      return true;
+    });
+    if (projectedAlive.length === 0) {
+      dispatch({ type: 'SET_PHASE', phase: 'END' });
+      router.replace('/(game)/end');
+      return;
+    }
+
+    // Check for random trail event
+    const event = selectTrailEvent(state);
+    if (event) {
+      setActiveEvent(event);
+      setIsAdvancing(false);
+      return;
+    }
+
+    // Check if we've arrived at next waypoint
+    const projectedMiles = state.milesUntilNextStop - MILES_PER_DAY[pace];
+    if (projectedMiles <= 0) {
+      dispatch({ type: 'ADVANCE_LOCATION' });
+      const nextIndex = currentIndex + 1;
+      if (nextIndex >= TRAIL_WAYPOINTS.length) {
+        setIsAdvancing(false);
+        return;
+      }
+      const nextLocation = TRAIL_WAYPOINTS[nextIndex];
+
+      if (nextLocation === 'oregon_city') {
+        dispatch({ type: 'SET_PHASE', phase: 'FINALE' });
+        router.push('/(game)/finale');
+        setIsAdvancing(false);
+        return;
+      } else if (FORT_WAYPOINTS.includes(nextLocation)) {
+        setIsAdvancing(false);
+        setTimeout(() => {
+          router.push(`/(game)/fort/${nextLocation}`);
+        }, 800);
+        return;
+      }
+      // Non-fort waypoint (chimney_rock, south_pass) - just continue
+    }
+
+    setIsAdvancing(false);
+  };
+
+  const handleEventResolved = (response: AIResponse) => {
+    // Apply resource changes
+    if (response.eventOutcome?.resourceChanges) {
+      const changes = response.eventOutcome.resourceChanges;
+      const updatedChanges: Record<string, number> = {};
+      for (const [key, delta] of Object.entries(changes)) {
+        if (delta !== undefined) {
+          const current = (state.resources as Record<string, number>)[key] ?? 0;
+          updatedChanges[key] = current + delta;
+        }
+      }
+      if (Object.keys(updatedChanges).length > 0) {
+        dispatch({ type: 'UPDATE_RESOURCES', changes: updatedChanges });
+      }
+    }
+
+    // Apply relationship deltas
+    if (response.relationshipDeltas) {
+      for (const [characterId, delta] of Object.entries(response.relationshipDeltas)) {
+        dispatch({
+          type: 'APPLY_RELATIONSHIP_DELTA',
+          characterA: characterId,
+          characterB: 'player',
+          delta,
+        });
+      }
+    }
+
+    // Apply new flags
+    if (response.newFlags) {
+      for (const flag of response.newFlags) {
+        dispatch({ type: 'SET_FLAG', flag });
+      }
+    }
+
+    // Add event to history
+    dispatch({
+      type: 'ADD_EVENT',
+      entry: {
+        day: state.day,
+        type: activeEvent?.type ?? 'trail_event',
+        description: response.eventOutcome?.description ?? '',
+        stressTag: response.stressTag,
+        involvedCharacterIds: [],
+        location: state.location,
+      },
+    });
+
+    // Advance location
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < TRAIL_WAYPOINTS.length) {
+      dispatch({ type: 'ADVANCE_LOCATION' });
+      const nextLocation = TRAIL_WAYPOINTS[nextIndex];
+
+      if (nextLocation === 'oregon_city') {
+        dispatch({ type: 'SET_PHASE', phase: 'FINALE' });
+        setActiveEvent(null);
+        router.push('/(game)/finale');
+        return;
+      } else if (FORT_WAYPOINTS.includes(nextLocation)) {
+        setActiveEvent(null);
+        setTimeout(() => {
+          router.push(`/(game)/fort/${nextLocation}`);
+        }, 800);
+        return;
+      }
+    }
+
+    setActiveEvent(null);
+  };
+
+  const healthDotColor = (health: number) => {
+    if (health > 60) return '#4caf50';
+    if (health > 20) return COLORS.gold;
+    return COLORS.error;
+  };
+
+  const { resources } = state;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.placeholder}>Trail — coming in Issue 4</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.dayText}>Day {state.day}</Text>
+        <Text style={styles.locationText}>
+          {state.milesUntilNextStop > 0 && currentIndex < TRAIL_WAYPOINTS.length - 1
+            ? `${state.milesUntilNextStop} mi to ${getLocationDisplayName(TRAIL_WAYPOINTS[currentIndex + 1])}`
+            : getLocationDisplayName(state.location)}
+        </Text>
+      </View>
+
+      {/* Progress bar */}
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+      </View>
+
+      {/* Resource HUD */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.resourceScroll}
+        contentContainerStyle={styles.resourceRow}
+      >
+        <ResourcePill label="Food" value={`${Math.round(resources.food)} lb`} warn={resources.food < 20} />
+        <ResourcePill label="Water" value={`${resources.water.toFixed(1)} bbl`} warn={resources.water < 1} />
+        <ResourcePill label="Ammo" value={`${resources.ammunition}`} />
+        <ResourcePill label="Med" value={`${resources.medicine}`} />
+        <ResourcePill label="Money" value={`$${resources.money.toFixed(0)}`} />
+        <ResourcePill label="Wagon" value={`${resources.wagonHealth}%`} />
+        <ResourcePill label="Oxen" value={`${resources.oxenHealth}%`} />
+      </ScrollView>
+
+      {/* Party health strip */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.partyScroll}
+        contentContainerStyle={styles.partyRow}
+      >
+        {aliveMembers.map((member) => (
+          <Text key={member.id} style={styles.partyMember}>
+            {member.name}{' '}
+            <Text style={{ color: healthDotColor(member.health) }}>●</Text>
+          </Text>
+        ))}
+      </ScrollView>
+
+      {/* Pace picker */}
+      <View style={styles.paceContainer}>
+        <Text style={styles.paceLabel}>Pace</Text>
+        <View style={styles.paceRow}>
+          {(['rest', 'steady', 'grueling'] as Pace[]).map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.paceButton, pace === p && styles.paceButtonSelected]}
+              onPress={() => setPace(p)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.paceButtonText, pace === p && styles.paceButtonTextSelected]}>
+                {PACE_LABELS[p]}
+              </Text>
+              <Text style={styles.paceNote}>{PACE_NOTES[p]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Campfire button */}
+      {(state.day > 0 && (state.day % 3 === 0 || pace === 'rest')) && (
+        <TouchableOpacity
+          style={styles.campfireButton}
+          onPress={() => router.push('/(game)/campfire')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.campfireButtonText}>Make Camp</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Advance Day button */}
+      <View style={styles.advanceContainer}>
+        <TouchableOpacity
+          style={[styles.advanceButton, isAdvancing && styles.advanceButtonDisabled]}
+          onPress={handleAdvanceDay}
+          disabled={isAdvancing}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.advanceButtonText}>Advance Day →</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Death notification */}
+      {recentDeaths.length > 0 && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.deathBackdrop}>
+            <View style={styles.deathCard}>
+              {recentDeaths.map((name, i) => (
+                <Text key={i} style={styles.deathText}>{name} has died on the trail.</Text>
+              ))}
+              <TouchableOpacity
+                style={styles.deathContinueButton}
+                onPress={() => setRecentDeaths([])}
+              >
+                <Text style={styles.deathContinueText}>Press on</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Event modal */}
+      {activeEvent !== null && (
+        <EventCard
+          event={activeEvent}
+          gameState={state}
+          onResolved={handleEventResolved}
+          onDismiss={() => setActiveEvent(null)}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+function ResourcePill({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
+  return (
+    <View style={[styles.pill, warn && styles.pillWarn]}>
+      <Text style={styles.pillLabel}>{label}</Text>
+      <Text style={styles.pillValue}>{value}</Text>
     </View>
   );
 }
@@ -24,12 +349,203 @@ export default function TrailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a0a00',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: COLORS.bg,
   },
-  placeholder: {
-    color: '#8b6914',
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: COLORS.goldDim,
     fontSize: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dayText: {
+    fontSize: 14,
+    color: COLORS.cream,
+  },
+  locationText: {
+    fontSize: 13,
+    color: COLORS.goldDim,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: COLORS.darkCard,
+    marginHorizontal: 16,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.gold,
+    borderRadius: 3,
+  },
+  resourceScroll: {
+    flexGrow: 0,
+    marginBottom: 12,
+  },
+  resourceRow: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pill: {
+    backgroundColor: COLORS.darkCard,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  pillWarn: {
+    borderColor: COLORS.error,
+  },
+  pillLabel: {
+    fontSize: 10,
+    color: COLORS.goldDim,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  pillValue: {
+    fontSize: 13,
+    color: COLORS.cream,
+    fontWeight: '600',
+  },
+  partyScroll: {
+    flexGrow: 0,
+    marginBottom: 20,
+  },
+  partyRow: {
+    paddingHorizontal: 16,
+    gap: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  partyMember: {
+    fontSize: 13,
+    color: COLORS.cream,
+  },
+  paceContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  paceLabel: {
+    fontSize: 11,
+    color: COLORS.goldDim,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  paceRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  paceButton: {
+    flex: 1,
+    backgroundColor: COLORS.darkCard,
+    borderWidth: 1,
+    borderColor: COLORS.goldDim,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 2,
+    alignItems: 'center',
+  },
+  paceButtonSelected: {
+    backgroundColor: COLORS.gold,
+    borderColor: COLORS.gold,
+  },
+  paceButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.cream,
+    marginBottom: 2,
+  },
+  paceButtonTextSelected: {
+    color: COLORS.darkCard,
+  },
+  paceNote: {
+    fontSize: 10,
+    color: COLORS.muted,
+  },
+  advanceContainer: {
+    paddingHorizontal: 16,
+    marginTop: 'auto',
+    paddingBottom: 16,
+  },
+  advanceButton: {
+    backgroundColor: COLORS.gold,
+    paddingVertical: 16,
+    borderRadius: 2,
+    alignItems: 'center',
+  },
+  advanceButtonDisabled: {
+    opacity: 0.5,
+  },
+  advanceButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkCard,
+  },
+  campfireButton: {
+    backgroundColor: COLORS.darkCard,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    paddingVertical: 12,
+    borderRadius: 2,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  campfireButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.gold,
+  },
+  deathBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  deathCard: {
+    backgroundColor: COLORS.darkCard,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    borderRadius: 4,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  deathText: {
+    fontSize: 16,
+    color: COLORS.cream,
+    fontStyle: 'italic',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  deathContinueButton: {
+    backgroundColor: COLORS.darkCard,
+    borderWidth: 1,
+    borderColor: COLORS.muted,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 2,
+    marginTop: 8,
+  },
+  deathContinueText: {
+    fontSize: 14,
+    color: COLORS.muted,
   },
 });

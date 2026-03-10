@@ -11,6 +11,7 @@ export default function GameLayout() {
       }}
     >
       <Stack.Screen name="prologue" />
+      <Stack.Screen name="campfire" />
       <Stack.Screen name="trail" />
       <Stack.Screen name="setup/characters" />
       <Stack.Screen name="setup/supplies" />

@@ -14,19 +14,10 @@ import { useGameState } from '@whoreagon-trail/game-engine';
 import {
   generateDialogue,
   streamDialogue,
+  type AIResponse,
 } from '@whoreagon-trail/ai-client';
 import { characterStable } from '@whoreagon-trail/characters';
 import { router } from 'expo-router';
-
-type AIResponse = {
-  dialogue: Array<{
-    characterId: string;
-    characterName: string;
-    text: string;
-  }>;
-  relationshipDeltas?: Record<string, number>;
-  newFlags?: string[];
-};
 
 export default function PrologueScreen() {
   const { state, dispatch } = useGameState();
@@ -62,11 +53,11 @@ export default function PrologueScreen() {
       const initializePrologue = async () => {
         try {
           setError(null);
-          const dialogue = await generateDialogue(state, '__SCENE_START__');
-          const displayMessages: DisplayMessage[] = dialogue.map((msg) => ({
+          const result = await generateDialogue(state, '__SCENE_START__');
+          const displayMessages: DisplayMessage[] = result.dialogue.map((msg) => ({
             id: Math.random().toString(36).slice(2),
             characterId: msg.characterId,
-            characterName: msg.characterName,
+            characterName: characterStable.find((c) => c.id === msg.characterId)?.name ?? msg.characterId,
             text: msg.text,
             isPlayer: false,
           }));
@@ -142,7 +133,7 @@ export default function PrologueScreen() {
       ).map((msg) => ({
         id: Math.random().toString(36).slice(2),
         characterId: msg.characterId,
-        characterName: msg.characterName,
+        characterName: characterStable.find((c) => c.id === msg.characterId)?.name ?? msg.characterId,
         text: msg.text,
         isPlayer: false,
       }));
@@ -175,7 +166,7 @@ export default function PrologueScreen() {
       // Add event
       dispatch({
         type: 'ADD_EVENT',
-        event: {
+        entry: {
           day: state.day,
           type: 'PROLOGUE',
           description: 'Prologue scene',
@@ -204,11 +195,11 @@ export default function PrologueScreen() {
 
     try {
       setError(null);
-      const dialogue = await generateDialogue(state, '__SCENE_START__');
-      const displayMessages: DisplayMessage[] = dialogue.map((msg) => ({
+      const result = await generateDialogue(state, '__SCENE_START__');
+      const displayMessages: DisplayMessage[] = result.dialogue.map((msg) => ({
         id: Math.random().toString(36).slice(2),
         characterId: msg.characterId,
-        characterName: msg.characterName,
+        characterName: characterStable.find((c) => c.id === msg.characterId)?.name ?? msg.characterId,
         text: msg.text,
         isPlayer: false,
       }));
