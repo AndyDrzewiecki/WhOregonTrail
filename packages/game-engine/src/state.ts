@@ -12,6 +12,7 @@ import {
   type RelationshipMatrix,
   createRelationshipMatrix,
   getRelationshipLabel,
+  RELATIONSHIP_SEEDS,
 } from '@whoreagon-trail/characters';
 import { useState, useEffect, useReducer, useCallback, useRef } from 'react';
 
@@ -110,6 +111,7 @@ export type GameState = {
   money: number;
   milesUntilNextStop: number;
   totalMilesTraveled: number;
+  difficulty: 'easy' | 'normal' | 'hard';
 };
 
 // ── Default resource values for a new run ────────────────────────────────────
@@ -265,6 +267,94 @@ export const TRAIL_EVENTS: TrailEventTemplate[] = [
     ],
     weightedWhen: 'always',
   },
+  {
+    id: 'blizzard',
+    type: 'blizzard',
+    description: 'Snow falls thick and fast. Visibility drops to nothing.',
+    choices: [
+      'Hunker down and wait it out (+1 day)',
+      'Push through the storm',
+      'Search for shelter nearby',
+    ],
+    weightedWhen: 'always',
+  },
+  {
+    id: 'heatwave',
+    type: 'heatwave',
+    description: 'The sun beats down with no mercy. Water evaporates faster.',
+    choices: [
+      'Ration water strictly',
+      'Rest during the day, travel at night',
+      'Press on and bear it',
+    ],
+    weightedWhen: 'always',
+  },
+  {
+    id: 'abandoned_wagon',
+    type: 'abandoned_wagon',
+    description: 'An empty wagon sits off the trail. Supplies scattered, no sign of the owners.',
+    choices: [
+      'Search the wagon for usable supplies',
+      'Leave it — could be a trap',
+      'Take the wagon parts for repairs',
+    ],
+    weightedWhen: 'always',
+  },
+  {
+    id: 'sick_stranger',
+    type: 'sick_stranger',
+    description: 'A man stumbles toward your wagon, barely standing. He begs to travel with you.',
+    choices: [
+      'Take him in and share your medicine',
+      'Give him food and water but move on',
+      'Turn him away — can\'t risk the party',
+    ],
+    weightedWhen: 'always',
+  },
+  {
+    id: 'roadside_audience',
+    type: 'roadside_audience',
+    description: 'A settler family watches from their cabin. They haven\'t seen entertainment in months.',
+    choices: [
+      'Put on a quick show for them',
+      'Stop to chat and trade news',
+      'Wave and keep moving',
+    ],
+    weightedWhen: 'highHealth',
+  },
+  {
+    id: 'poisoned_water',
+    type: 'poisoned_water',
+    description: 'The creek ahead has a strange color. Your oxen refuse to drink.',
+    choices: [
+      'Boil the water before drinking',
+      'Search for a different water source (+1 day)',
+      'Risk drinking it anyway',
+    ],
+    weightedWhen: 'lowResources',
+  },
+  {
+    id: 'stampede',
+    type: 'stampede',
+    description: 'A crack of thunder spooks the oxen. They bolt.',
+    choices: [
+      'Chase them down on foot',
+      'Try to calm them with steady hands',
+      'Let them run and hope the wagon holds',
+    ],
+    weightedWhen: 'always',
+  },
+  {
+    id: 'internal_conflict',
+    type: 'internal_conflict',
+    description: 'Two of your party members are at each other\'s throats over something that happened yesterday.',
+    choices: [
+      'Mediate the argument',
+      'Let them sort it out themselves',
+      'Take sides with one of them',
+    ],
+    weightedWhen: 'always',
+  },
 ];
 
 export function selectTrailEvent(state: GameState): TrailEventTemplate | null {
@@ -297,6 +387,21 @@ export type MinigameConfig = {
   targetLifetimeMs: number;
   reward: Partial<ResourceState>;
   penaltyPerMiss?: Partial<ResourceState>;
+  mechanic?: 'TAP' | 'TILT' | 'RHYTHM' | 'BALANCE' | 'HOLD' | 'SWIPE';
+  taskDescription?: string;
+  sensor?: string;
+  hapticOnSuccess?: string;
+  hapticOnProgress?: string;
+  hapticOnFailure?: string;
+  params?: {
+    target?: number;
+    tolerance?: number;
+    durationMs?: number;
+    holdPhases?: number;
+    swipeSequence?: string[];
+    minBeats?: number;
+  };
+  moneyReward?: { min: number; max: number };
 };
 
 export const HUNTING_MINIGAME: MinigameConfig = {
@@ -309,6 +414,66 @@ export const HUNTING_MINIGAME: MinigameConfig = {
   reward: { food: 40 },
   penaltyPerMiss: { ammunition: -1 },
 };
+
+// ── Performance minigame configs ─────────────────────────────────────────
+
+export const PERFORMANCE_MINIGAMES: MinigameConfig[] = [
+  {
+    id: 'performance_rhythm',
+    title: 'RHYTHM PERFORMANCE',
+    mechanic: 'RHYTHM',
+    sensor: 'TOUCH',
+    taskDescription: 'Keep the beat for the crowd',
+    durationMs: 12000,
+    targetCount: 0,
+    spawnIntervalMs: 0,
+    targetLifetimeMs: 0,
+    reward: {},
+    hapticOnSuccess: 'SUCCESS',
+    hapticOnProgress: 'LIGHT',
+    hapticOnFailure: 'ERROR',
+    params: { minBeats: 16 },
+    moneyReward: { min: 40, max: 80 },
+  },
+  {
+    id: 'performance_hold',
+    title: 'DRAMATIC POSE',
+    mechanic: 'HOLD',
+    sensor: 'TOUCH',
+    taskDescription: 'Hold the dramatic pose',
+    durationMs: 10000,
+    targetCount: 0,
+    spawnIntervalMs: 0,
+    targetLifetimeMs: 0,
+    reward: {},
+    hapticOnSuccess: 'SUCCESS',
+    hapticOnProgress: 'SOFT',
+    hapticOnFailure: 'ERROR',
+    params: { holdPhases: 3, durationMs: 10000 },
+    moneyReward: { min: 30, max: 60 },
+  },
+  {
+    id: 'performance_swipe',
+    title: 'CHOREOGRAPHY',
+    mechanic: 'SWIPE',
+    sensor: 'TOUCH',
+    taskDescription: 'Follow the choreography',
+    durationMs: 15000,
+    targetCount: 0,
+    spawnIntervalMs: 0,
+    targetLifetimeMs: 0,
+    reward: {},
+    hapticOnSuccess: 'SUCCESS',
+    hapticOnProgress: 'MEDIUM',
+    hapticOnFailure: 'ERROR',
+    params: { swipeSequence: ['up', 'right', 'down', 'left', 'up', 'right'] },
+    moneyReward: { min: 35, max: 70 },
+  },
+];
+
+export function selectPerformanceMinigame(): MinigameConfig {
+  return PERFORMANCE_MINIGAMES[Math.floor(Math.random() * PERFORMANCE_MINIGAMES.length)];
+}
 
 // ── Storage key ──────────────────────────────────────────────────────────────
 
@@ -328,6 +493,7 @@ export type EventOutcome = {
 export type GameAction =
   | { type: 'START_RUN'; party: Character[] }
   | { type: 'SET_PHASE'; phase: Phase }
+  | { type: 'SET_DIFFICULTY'; difficulty: 'easy' | 'normal' | 'hard' }
   | { type: 'ADVANCE_DAY'; pace: 'rest' | 'steady' | 'grueling' }
   | { type: 'UPDATE_RESOURCES'; changes: Partial<ResourceState> }
   | { type: 'APPLY_RELATIONSHIP_DELTA'; characterA: CharacterId; characterB: CharacterId; delta: number }
@@ -386,17 +552,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         location: 'independence_mo',
         party,
         resources: { ...DEFAULT_RESOURCES, wagonParts: { ...DEFAULT_RESOURCES.wagonParts } },
-        relationshipMatrix: createRelationshipMatrix(action.party),
+        relationshipMatrix: createRelationshipMatrix(action.party, RELATIONSHIP_SEEDS),
         eventHistory: [],
         flags: [],
         money: 0,
         milesUntilNextStop: 200,
         totalMilesTraveled: 0,
+        difficulty: 'normal',
       };
     }
 
     case 'SET_PHASE': {
       return { ...state, phase: action.phase };
+    }
+
+    case 'SET_DIFFICULTY': {
+      return { ...state, difficulty: action.difficulty };
     }
 
     case 'ADVANCE_DAY': {
@@ -708,6 +879,7 @@ export function useGameState(): {
     money: 0,
     milesUntilNextStop: 200,
     totalMilesTraveled: 0,
+    difficulty: 'normal',
   };
 
   const [reducerState, rawDispatch] = useReducer(gameReducer, initialState);
