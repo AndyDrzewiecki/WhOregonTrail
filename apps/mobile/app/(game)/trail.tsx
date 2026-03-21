@@ -163,11 +163,13 @@ export default function TrailScreen() {
     // Apply resource changes
     if (response.eventOutcome?.resourceChanges) {
       const changes = response.eventOutcome.resourceChanges;
-      const updatedChanges: Record<string, number> = {};
-      for (const [key, delta] of Object.entries(changes)) {
+      const updatedChanges: Partial<import('@whoreagon-trail/game-engine').ResourceState> = {};
+      const resourceKeys = ['food', 'water', 'money', 'oxenHealth', 'wagonHealth', 'ammunition', 'medicine'] as const;
+      for (const key of resourceKeys) {
+        const delta = changes[key];
         if (delta !== undefined) {
           const current = (state.resources as Record<string, number>)[key] ?? 0;
-          updatedChanges[key] = current + delta;
+          (updatedChanges as Record<string, number>)[key] = current + delta;
         }
       }
       if (Object.keys(updatedChanges).length > 0) {
@@ -207,26 +209,6 @@ export default function TrailScreen() {
       },
     });
 
-    // Advance location
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < TRAIL_WAYPOINTS.length) {
-      dispatch({ type: 'ADVANCE_LOCATION' });
-      const nextLocation = TRAIL_WAYPOINTS[nextIndex];
-
-      if (nextLocation === 'oregon_city') {
-        dispatch({ type: 'SET_PHASE', phase: 'FINALE' });
-        setActiveEvent(null);
-        router.push('/(game)/finale');
-        return;
-      } else if (FORT_WAYPOINTS.includes(nextLocation)) {
-        setActiveEvent(null);
-        setTimeout(() => {
-          router.push(`/(game)/fort/${nextLocation}`);
-        }, 800);
-        return;
-      }
-    }
-
     setActiveEvent(null);
   };
 
@@ -249,6 +231,9 @@ export default function TrailScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowMap(true)} style={styles.headerBtn}>
             <Text style={styles.headerBtnText}>Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(game)/settings')} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>Menu</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.locationText}>

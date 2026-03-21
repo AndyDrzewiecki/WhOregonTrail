@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -13,14 +12,11 @@ import {
   useGameState,
   CONSUMPTION_RATES,
   getLocationDisplayName,
+  selectPerformanceMinigame,
 } from '@whoreagon-trail/game-engine';
-import { streamDialogue, type AIResponse } from '@whoreagon-trail/ai-client';
-import { characterStable } from '@whoreagon-trail/characters';
-import { DialogueLog, type DisplayMessage } from '@/src/components/DialogueLog';
-import { TypeBox } from '@/src/components/TypeBox';
 import { COLORS } from '@/src/constants/colors';
 
-type FortView = 'hub' | 'show' | 'trade' | 'rest';
+type FortView = 'hub' | 'trade' | 'rest';
 
 interface TradeCart {
   food: number;
@@ -45,13 +41,6 @@ export default function FortScreen() {
   const { state, dispatch } = useGameState();
 
   const [view, setView] = useState<FortView>('hub');
-
-  // Show state
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [earnings, setEarnings] = useState<number | null>(null);
-  const accumulatedRef = useRef('');
-  const streamingIdRef = useRef('');
 
   // Trade state
   const [cart, setCart] = useState<TradeCart>({ food: 0, water: 0, ammo: 0, medicine: 0, wheel: 0, axle: 0 });
@@ -81,85 +70,6 @@ export default function FortScreen() {
     dispatch({ type: 'SET_PHASE', phase: 'TRAIL' });
     dispatch({ type: 'ADVANCE_LOCATION' });
     router.replace('/(game)/trail');
-  };
-
-  // ── Show ───────────────────────────────────────────────────────────────────
-
-  const handleShowSubmit = async (playerText: string) => {
-    if (!state) return;
-
-    const playerMsg: DisplayMessage = {
-      id: Math.random().toString(36).slice(2),
-      characterId: 'player',
-      characterName: 'You',
-      text: playerText,
-      isPlayer: true,
-    };
-    setMessages((prev) => [...prev, playerMsg]);
-
-    setIsStreaming(true);
-    accumulatedRef.current = '';
-    streamingIdRef.current = Math.random().toString(36).slice(2);
-
-    try {
-      const onChunk = (chunk: string) => {
-        accumulatedRef.current += chunk;
-        const streamingMsg: DisplayMessage = {
-          id: streamingIdRef.current,
-          characterId: 'narrator',
-          characterName: '—',
-          text: accumulatedRef.current,
-          isPlayer: false,
-        };
-        setMessages((prev) => {
-          const idx = prev.findIndex((m) => m.id === streamingIdRef.current);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = streamingMsg;
-            return updated;
-          }
-          return [...prev, streamingMsg];
-        });
-      };
-
-      const response: AIResponse = await streamDialogue(state, playerText, onChunk);
-
-      setMessages((prev) => prev.filter((m) => m.id !== streamingIdRef.current));
-
-      const parsed: DisplayMessage[] = (response.dialogue ?? []).map((msg) => ({
-        id: Math.random().toString(36).slice(2),
-        characterId: msg.characterId,
-        characterName: characterStable.find((c) => c.id === msg.characterId)?.name ?? msg.characterId,
-        text: msg.text,
-        isPlayer: false,
-      }));
-      setMessages((prev) => [...prev, ...parsed]);
-
-      if (response.newFlags) {
-        for (const flag of response.newFlags) {
-          dispatch({ type: 'SET_FLAG', flag });
-        }
-      }
-
-      const isDone =
-        response.newFlags?.includes('FORT_SHOW_COMPLETE') ||
-        playerText.toLowerCase().includes('done') ||
-        playerText.toLowerCase().includes('leave');
-
-      if (isDone && earnings === null) {
-        const result = response.eventOutcome?.result ?? 'partial_success';
-        const earned = result === 'success' ? 60 : result === 'partial_success' ? 30 : 10;
-        setEarnings(earned);
-        dispatch({
-          type: 'UPDATE_RESOURCES',
-          changes: { money: state.resources.money + earned },
-        });
-      }
-    } catch {
-      setMessages((prev) => prev.filter((m) => m.id !== streamingIdRef.current));
-    } finally {
-      setIsStreaming(false);
-    }
   };
 
   // ── Trade ──────────────────────────────────────────────────────────────────
@@ -220,11 +130,22 @@ export default function FortScreen() {
   if (view === 'hub') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Text style={styles.fortTitle}>{fortName}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.fortTitle}>{fortName}</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(game)/settings')}
+            style={{ borderWidth: 1, borderColor: COLORS.goldDim, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 2 }}
+          >
+            <Text style={{ fontSize: 11, color: COLORS.goldDim, letterSpacing: 1 }}>Menu</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.fortSubtitle}>You have reached the fort.</Text>
 
         <View style={styles.hubButtons}>
-          <TouchableOpacity style={styles.hubButtonGold} onPress={() => setView('show')} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.hubButtonGold} onPress={() => {
+            const config = selectPerformanceMinigame();
+            router.push(`/(game)/minigame/${config.id}`);
+          }} activeOpacity={0.8}>
             <Text style={styles.hubButtonGoldText}>Book a Show</Text>
           </TouchableOpacity>
 
@@ -240,47 +161,6 @@ export default function FortScreen() {
             <Text style={styles.hubButtonMutedText}>Head Out</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (view === 'show') {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <TouchableOpacity style={styles.backButton} onPress={() => { setView('hub'); setEarnings(null); setMessages([]); }}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.viewTitle}>The Show</Text>
-
-        {earnings !== null && (
-          <View style={styles.earningsBanner}>
-            <Text style={styles.earningsText}>Earned ${earnings} from the performance!</Text>
-          </View>
-        )}
-
-        <View style={{ flex: 1 }}>
-          <DialogueLog messages={messages} isStreaming={isStreaming} />
-        </View>
-
-        {earnings === null ? (
-          <View style={styles.typeBoxContainer}>
-            <TypeBox
-              onSubmit={handleShowSubmit}
-              placeholder="Perform, speak, or leave..."
-              disabled={isStreaming}
-            />
-          </View>
-        ) : (
-          <View style={styles.backToFortContainer}>
-            <TouchableOpacity
-              style={styles.backToFortButton}
-              onPress={() => { setView('hub'); setEarnings(null); setMessages([]); }}
-            >
-              <Text style={styles.backToFortText}>Back to Fort</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </SafeAreaView>
     );
   }
@@ -474,38 +354,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gold,
     marginBottom: 12,
-  },
-  earningsBanner: {
-    backgroundColor: COLORS.darkCard,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
-    padding: 12,
-    borderRadius: 2,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  earningsText: {
-    fontSize: 16,
-    color: COLORS.gold,
-    fontWeight: '600',
-  },
-  typeBoxContainer: {
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  backToFortContainer: {
-    paddingTop: 12,
-  },
-  backToFortButton: {
-    backgroundColor: COLORS.gold,
-    paddingVertical: 14,
-    borderRadius: 2,
-    alignItems: 'center',
-  },
-  backToFortText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.darkCard,
   },
   tradeScroll: {
     flex: 1,
