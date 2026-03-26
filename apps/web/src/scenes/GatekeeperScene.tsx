@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import type { GameState, GameAction, EventOutcome } from '@whoreagon-trail/game-engine';
+import type { GameState, GameAction, EventOutcome, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { getLocationDisplayName } from '@whoreagon-trail/game-engine';
 import { resolveEvent, streamDialogue } from '@whoreagon-trail/ai-client';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
@@ -34,6 +34,14 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
       state.day > 5 && protection > 60
         ? `Word of this wagon's reputation for keeping people safe has reached here. The gatekeeper's skepticism is mixed with curiosity.`
         : null,
+      state.runMemory?.events.some(e => e.type === 'gatekeeper_outcome' && e.sentiment === 'negative')
+        ? `This wagon has been turned away before. The gatekeeper can sense the desperation of people who know they may not get another chance.`
+        : state.runMemory?.events.some(e => e.type === 'gatekeeper_outcome' && e.sentiment === 'positive')
+          ? `Word may have traveled. This wagon navigated gates before without incident — the gatekeeper is cautious rather than hostile.`
+          : '',
+      state.runMemory?.events.some(e => e.type === 'coaching_moment' && e.sentiment === 'positive')
+        ? `The captain pulled someone aside before this. Whatever was said, the wagon arrived with unusual cohesion. The gatekeeper notices people who don't look desperate.`
+        : '',
     ].filter(Boolean).join(' ');
 
     const streamingId = 'gate-0';
@@ -91,6 +99,21 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
     } else {
       dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { stigmaPressure: -5, protection: 5 } });
     }
+
+    dispatch({
+      type: 'RECORD_MEMORY_EVENT',
+      event: {
+        day: state.day,
+        type: 'gatekeeper_outcome',
+        label: result === 'success'
+          ? `negotiated entry at ${getLocationDisplayName(state.location)}`
+          : result === 'partial_success'
+            ? `barely got through at ${getLocationDisplayName(state.location)}`
+            : `turned away at ${getLocationDisplayName(state.location)}`,
+        approach: result === 'success' ? 'charm' : result === 'failure' ? 'force' : 'compromise',
+        sentiment: result === 'success' ? 'positive' : result === 'failure' ? 'negative' : 'ambiguous',
+      } as MemoryEvent,
+    });
 
     setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2500);
     setInputEnabled(false);

@@ -9,6 +9,7 @@ export type SceneName =
   | 'CHARACTER_INTRODUCTIONS'
   | 'CONFLICT'
   | 'PLANNING'
+  | 'COACHING'
   | 'GATEKEEPER'
   | 'ENTERTAINMENT_CIRCUIT'
   | 'MINIGAME'
@@ -35,6 +36,19 @@ export function useSceneRouter(state: GameState | null): SceneName {
   if (!state || state.phase === 'PROLOGUE') {
     if (!state || !state.flags.includes('PROLOGUE_COMPLETE')) return 'WAGON_OPENER';
     return 'CHARACTER_INTRODUCTIONS';
+  }
+  // Offer coaching before fort/performance if conditions are met
+  if (
+    state.phase === 'FORT' &&
+    !state.flags.includes(`COACHED_DAY_${state.day}`) &&
+    (
+      (state.hiddenState?.resentment ?? 0) > 28 ||
+      (state.hiddenState?.boundaryStrain ?? 0) > 28 ||
+      (state.runMemory?.boundaryCrossed ?? false) ||
+      (state.runMemory?.usedCharacterIds?.length ?? 0) > 0
+    )
+  ) {
+    return 'COACHING';
   }
   // Entertainment circuit performance negotiation takes priority over standard gate entry
   if (state.phase === 'FORT' && state.route?.type === 'entertainment_circuit') return 'ENTERTAINMENT_CIRCUIT';

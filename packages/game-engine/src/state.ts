@@ -90,6 +90,45 @@ export type HiddenState = {
   boundaryStrain: number;  // 0-100: how much the troupe's limits have been pushed
 };
 
+// ── RunMemory ─────────────────────────────────────────────────────────────────
+
+export type MemoryApproach = 'charm' | 'force' | 'compromise' | 'manipulation' | 'sacrifice';
+export type MemorySentiment = 'positive' | 'negative' | 'ambiguous';
+export type MemoryEventType =
+  | 'route_chosen'
+  | 'gatekeeper_outcome'
+  | 'conflict_outcome'
+  | 'coaching_moment'
+  | 'boundary_crossed'
+  | 'boundary_defended'
+  | 'performance_outcome'
+  | 'sacrifice_made';
+
+export type MemoryEvent = {
+  day: number;
+  type: MemoryEventType;
+  label: string;         // short human-readable: "persuaded gatekeeper at Fort Laramie"
+  approach?: MemoryApproach;
+  characterId?: string;  // who was primarily involved
+  sentiment: MemorySentiment;
+};
+
+export type RunMemory = {
+  events: MemoryEvent[];           // capped at 20 most recent
+  protectedCharacterIds: string[];
+  usedCharacterIds: string[];
+  boundaryDefended: boolean;
+  boundaryCrossed: boolean;
+};
+
+export const DEFAULT_RUN_MEMORY: RunMemory = {
+  events: [],
+  protectedCharacterIds: [],
+  usedCharacterIds: [],
+  boundaryDefended: false,
+  boundaryCrossed: false,
+};
+
 // ── EventHistoryEntry ────────────────────────────────────────────────────────
 
 export type EventHistoryEntry = {
@@ -143,6 +182,7 @@ export type GameState = {
   difficulty: 'easy' | 'normal' | 'hard';
   route: RouteProfile | null;
   hiddenState: HiddenState;
+  runMemory: RunMemory;
 };
 
 // ── Default resource values for a new run ────────────────────────────────────
@@ -568,7 +608,8 @@ export type GameAction =
   | { type: 'APPLY_EVENT_OUTCOME'; outcome: EventOutcome }
   | { type: 'END_RUN' }
   | { type: 'SET_ROUTE'; route: RouteProfile }
-  | { type: 'APPLY_HIDDEN_DELTA'; delta: Partial<HiddenState> };
+  | { type: 'APPLY_HIDDEN_DELTA'; delta: Partial<HiddenState> }
+  | { type: 'RECORD_MEMORY_EVENT'; event: MemoryEvent };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -624,6 +665,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         difficulty: 'normal',
         route: null,
         hiddenState: { ...DEFAULT_HIDDEN_STATE },
+        runMemory: { ...DEFAULT_RUN_MEMORY, events: [], protectedCharacterIds: [], usedCharacterIds: [] },
       };
     }
 
@@ -899,7 +941,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'END_RUN': {
-      return { ...state, phase: 'END' };
+      return { ...state, phase: 'END', runMemory: { ...DEFAULT_RUN_MEMORY } };
     }
 
     case 'SET_ROUTE':
@@ -916,6 +958,46 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         boundaryStrain: Math.max(0, Math.min(100, current.boundaryStrain + (action.delta.boundaryStrain ?? 0))),
       };
       return { ...state, hiddenState: updated };
+    }
+
+    case 'RECORD_MEMORY_EVENT': {
+      const prev = state.runMemory ?? { ...DEFAULT_RUN_MEMORY };
+      const newEvents = [...prev.events, action.event];
+      // Keep max 20, drop oldest
+      const cappedEvents = newEvents.length > 20 ? newEvents.slice(newEvents.length - 20) : newEvents;
+
+      let protectedCharacterIds = [...prev.protectedCharacterIds];
+      let usedCharacterIds = [...prev.usedCharacterIds];
+      let boundaryDefended = prev.boundaryDefended;
+      let boundaryCrossed = prev.boundaryCrossed;
+
+      if (action.event.sentiment === 'negative' && action.event.characterId) {
+        if (!usedCharacterIds.includes(action.event.characterId)) {
+          usedCharacterIds = [...usedCharacterIds, action.event.characterId];
+        }
+      }
+      if (action.event.sentiment === 'positive' && action.event.characterId) {
+        if (!protectedCharacterIds.includes(action.event.characterId)) {
+          protectedCharacterIds = [...protectedCharacterIds, action.event.characterId];
+        }
+      }
+      if (action.event.type === 'boundary_defended') {
+        boundaryDefended = true;
+      }
+      if (action.event.type === 'boundary_crossed') {
+        boundaryCrossed = true;
+      }
+
+      return {
+        ...state,
+        runMemory: {
+          events: cappedEvents,
+          protectedCharacterIds,
+          usedCharacterIds,
+          boundaryDefended,
+          boundaryCrossed,
+        },
+      };
     }
 
     default: {
@@ -969,6 +1051,7 @@ export function useGameState(adapter?: StorageAdapter): {
     difficulty: 'normal',
     route: null,
     hiddenState: { ...DEFAULT_HIDDEN_STATE },
+    runMemory: { ...DEFAULT_RUN_MEMORY },
   };
 
   const [reducerState, rawDispatch] = useReducer(gameReducer, initialState);

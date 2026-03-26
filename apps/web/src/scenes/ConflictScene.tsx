@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import type { GameState, GameAction, EventOutcome } from '@whoreagon-trail/game-engine';
+import type { GameState, GameAction, EventOutcome, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { resolveEvent, streamDialogue } from '@whoreagon-trail/ai-client';
+import { buildSpotlightSignal } from '@/lib/spotlightUtils';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
 import styles from './Scene.module.css';
@@ -29,9 +30,38 @@ export default function ConflictScene({ state, dispatch }: Props) {
           ? `The entertainment circuit route is straining the troupe. This conflict is partly about the choices being made.`
           : '';
 
+    const routeChainSignal = routeType === 'wilderness_route'
+      ? `On the wilderness route, there is no outside pressure to hold this together. If it breaks here, it breaks alone.`
+      : routeType === 'entertainment_circuit'
+        ? `The entertainment circuit is creating this conflict. Both characters know it. The argument is about the decisions that led here.`
+        : '';
+
+    // Build callback signal from run memory
+    const callbackSignal = (() => {
+      const memory = state.runMemory;
+      if (!memory || memory.events.length === 0) return '';
+
+      const lastConflict = [...memory.events].reverse().find(e => e.type === 'conflict_outcome');
+      const lastGatekeeper = [...memory.events].reverse().find(e => e.type === 'gatekeeper_outcome');
+
+      if (lastConflict?.sentiment === 'negative') {
+        return `A previous conflict was not resolved well. Characters in this scene remember it. One of them may reference that unfinished business.`;
+      }
+      if (lastConflict?.sentiment === 'positive') {
+        return `The captain has successfully mediated before. One character may defer to that track record, at least at first.`;
+      }
+      if (lastGatekeeper?.sentiment === 'negative') {
+        return `The wagon was turned away from a fort recently. That humiliation is still fresh. This conflict is partly about that.`;
+      }
+      return '';
+    })();
+
     const conflictSignal = [
       `__CONFLICT__: An internal party conflict is in progress. Event that triggered it: ${lastEvent.type}. ${lastEvent.description}. Two characters are visibly in conflict. Show both sides. Do not resolve it yet. Let the player walk into the middle of it.`,
       economyContext,
+      routeChainSignal,
+      callbackSignal,
+      buildSpotlightSignal(state),
     ].filter(Boolean).join(' ');
 
     const streamingId = 'conflict-0';
@@ -89,6 +119,21 @@ export default function ConflictScene({ state, dispatch }: Props) {
     } else {
       dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: 15, obedience: -10 } });
     }
+
+    dispatch({
+      type: 'RECORD_MEMORY_EVENT',
+      event: {
+        day: state.day,
+        type: 'conflict_outcome',
+        label: result === 'success'
+          ? 'resolved internal conflict — wagon held together'
+          : result === 'partial_success'
+            ? 'patched over a conflict — tension remains'
+            : 'conflict went unresolved — fracture deepened',
+        approach: result === 'success' ? 'compromise' : result === 'failure' ? 'force' : 'manipulation',
+        sentiment: result === 'success' ? 'positive' : result === 'failure' ? 'negative' : 'ambiguous',
+      } as MemoryEvent,
+    });
 
     setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2000);
     setInputEnabled(false);

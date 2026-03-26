@@ -29,7 +29,10 @@ export function useVoiceInput(onTranscript: (text: string) => void) {
       setLiveTranscript(final || interim);
       if (final) { onTranscript(final.trim()); setLiveTranscript(''); }
     };
-    r.onend = () => setVoiceState('idle');
+    r.onend = () => {
+      setVoiceState('idle');
+      setLiveTranscript('');
+    };
     r.onerror = () => { setVoiceState('idle'); setLiveTranscript(''); };
     recognitionRef.current = r;
   }, [onTranscript]);

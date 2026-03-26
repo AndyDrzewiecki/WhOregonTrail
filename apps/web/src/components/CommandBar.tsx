@@ -40,6 +40,11 @@ export default function CommandBar({ onSubmit, placeholder = 'What do you say...
       {voiceState === 'listening' && (
         <div className={styles.voiceIndicator}>Listening...</div>
       )}
+      {voiceState === 'listening' && liveTranscript && (
+        <p style={{ fontSize: '0.6rem', color: 'var(--muted)', margin: '0 0 4px', fontStyle: 'italic' }}>
+          Speaking... transcript will submit automatically
+        </p>
+      )}
       <div className={styles.inner}>
         <textarea
           ref={textareaRef}

@@ -193,6 +193,15 @@ function gameStateToUserMessage(gameState: GameState, extra: string): string {
     ? roleAssignmentFlag.slice('ROLE_ASSIGNMENT:'.length)
     : undefined;
 
+  // Build human-readable memory context (only last 5 events + key booleans)
+  const memoryContext = {
+    recentDecisions: (gameState.runMemory?.events ?? []).slice(-5).map(e => e.label),
+    boundaryDefended: gameState.runMemory?.boundaryDefended ?? false,
+    boundaryCrossed: gameState.runMemory?.boundaryCrossed ?? false,
+    protectedPeople: gameState.runMemory?.protectedCharacterIds ?? [],
+    usedPeople: gameState.runMemory?.usedCharacterIds ?? [],
+  };
+
   const summary = {
     day: gameState.day,
     location: gameState.location,
@@ -204,6 +213,7 @@ function gameStateToUserMessage(gameState: GameState, extra: string): string {
     recentEvents,
     flags: gameState.flags,
     socialPressure: buildSocialPressure(gameState.hiddenState),
+    memoryContext,
     ...(roleAssignment !== undefined ? { roleAssignment } : {}),
   };
 

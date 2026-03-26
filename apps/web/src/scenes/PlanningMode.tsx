@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import type { GameState, GameAction, RouteProfile } from '@whoreagon-trail/game-engine';
+import type { GameState, GameAction, RouteProfile, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { getLocationDisplayName } from '@whoreagon-trail/game-engine';
 import styles from './Scene.module.css';
 
@@ -103,6 +103,20 @@ export default function PlanningMode({ state, dispatch }: Props) {
     if (delta) {
       dispatch({ type: 'APPLY_HIDDEN_DELTA', delta });
     }
+    const routeType = routeKey as 'fort_route' | 'wilderness_route' | 'entertainment_circuit';
+    dispatch({
+      type: 'RECORD_MEMORY_EVENT',
+      event: {
+        day: state?.day ?? 1,
+        type: 'route_chosen',
+        label: routeType === 'fort_route'
+          ? 'chose fort route — public visibility, gatekeepers, respectable front'
+          : routeType === 'wilderness_route'
+            ? 'chose wilderness route — isolation, internal pressure, no outside judgment'
+            : 'chose entertainment circuit — performance demands, boundary economics, debt pressure',
+        sentiment: 'ambiguous',
+      } as MemoryEvent,
+    });
     setStage('role');
   };
 

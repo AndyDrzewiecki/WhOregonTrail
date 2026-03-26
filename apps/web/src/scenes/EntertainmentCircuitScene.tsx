@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import type { GameState, GameAction, EventOutcome } from '@whoreagon-trail/game-engine';
+import type { GameState, GameAction, EventOutcome, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { getLocationDisplayName } from '@whoreagon-trail/game-engine';
 import { resolveEvent, streamDialogue } from '@whoreagon-trail/ai-client';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
@@ -18,8 +18,17 @@ export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
     if (!state || messages.length > 0) return;
 
     const { indebtedness, boundaryStrain, obedience } = state.hiddenState;
+    const priorPerformanceSignal = (state.runMemory?.events.filter(e => e.type === 'performance_outcome').length ?? 0) > 0
+      ? `This is not the first performance negotiation. The troupe has been through this before — ${
+          (state.runMemory?.events.filter(e => e.type === 'performance_outcome' && e.sentiment === 'negative').length ?? 0) > 0
+            ? 'and it has gone badly. People are wary.'
+            : 'and it worked out. They are cautiously more confident.'
+        }`
+      : '';
+
     const signal = [
       `__ENTERTAINMENT_CIRCUIT__: A local promoter approaches. They've heard about the troupe and want a performance. They have money and an audience. They also have expectations. The troupe is watching you negotiate. What you agree to will matter.`,
+      priorPerformanceSignal,
       indebtedness > 40
         ? `The wagon is in debt. Some in the troupe will feel they have no real choice.`
         : null,
@@ -90,6 +99,33 @@ export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
       dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { boundaryStrain: 10, indebtedness: -5 } });
     } else {
       dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: 15, boundaryStrain: 15, stigmaPressure: 5 } });
+    }
+
+    dispatch({
+      type: 'RECORD_MEMORY_EVENT',
+      event: {
+        day: state.day,
+        type: 'performance_outcome',
+        label: result === 'success'
+          ? 'negotiated good performance terms — boundaries held'
+          : result === 'partial_success'
+            ? 'took the performance — terms were not ideal'
+            : 'performance deal collapsed — cost the wagon',
+        approach: result === 'success' ? 'compromise' : result === 'partial_success' ? 'sacrifice' : 'force',
+        sentiment: result === 'success' ? 'positive' : result === 'failure' ? 'negative' : 'ambiguous',
+      } as MemoryEvent,
+    });
+
+    if (result === 'success') {
+      dispatch({
+        type: 'RECORD_MEMORY_EVENT',
+        event: { day: state.day, type: 'boundary_defended', label: 'held the line on performance terms', sentiment: 'positive' },
+      });
+    } else if (result === 'failure') {
+      dispatch({
+        type: 'RECORD_MEMORY_EVENT',
+        event: { day: state.day, type: 'boundary_crossed', label: 'terms were forced on the troupe', sentiment: 'negative' },
+      });
     }
 
     setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2000);

@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { GameState, GameAction } from '@whoreagon-trail/game-engine';
 import { streamDialogue } from '@whoreagon-trail/ai-client';
+import { buildSpotlightSignal } from '@/lib/spotlightUtils';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
 import styles from './Scene.module.css';
@@ -47,11 +48,32 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
     const recentSummary = state.eventHistory.slice(-3).map(e => e.description).join('; ');
     const routeNote = state.route?.type ? `Route: ${state.route.type}.` : '';
     const dayNote = (state.day ?? 1) >= 5 ? `Day ${state.day} on the trail — the novelty has worn off.` : '';
+    const memoryContext = state.runMemory?.events.slice(-3).map(e => e.label).join('; ') ?? '';
+    const memorySignal = memoryContext
+      ? `The wagon remembers: ${memoryContext}. Characters should reference these specific events, not generic hardship.`
+      : '';
+    const boundaryCallbackSignal = (() => {
+      if (!state?.runMemory) return '';
+      if (state.runMemory.boundaryCrossed && state.runMemory.boundaryDefended) {
+        return `This run has had both — a boundary crossed and a line held. Someone around this fire knows the difference. Let them name it without explaining it.`;
+      }
+      if (state.runMemory.boundaryCrossed) {
+        return `A boundary was crossed earlier. Nobody has named it directly yet. Campfire is where that surfaces — obliquely, in a comment that isn't quite a comment.`;
+      }
+      if (state.runMemory.boundaryDefended) {
+        return `The captain held a line that didn't have to be held. Someone around this fire is grateful in a way they won't say directly.`;
+      }
+      return '';
+    })();
+
     const campfireSignal = [
       `__CAMPFIRE_START__: Reflect on today. Recent events: ${recentSummary}. Characters should react to SPECIFIC things that happened, not generic trail hardship. If someone died today, someone is grieving. If a conflict went unresolved, someone is still angry. Campfire is where the real feelings come out.`,
       routeNote,
       dayNote,
       leadershipContext,
+      memorySignal,
+      boundaryCallbackSignal,
+      buildSpotlightSignal(state),
     ].filter(Boolean).join(' ');
 
     streamDialogue(state, campfireSignal, (chunk) => {

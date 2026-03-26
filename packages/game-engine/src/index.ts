@@ -22,10 +22,16 @@ export {
   type RouteType,
   type RouteProfile,
   type HiddenState,
+  type RunMemory,
+  type MemoryEvent,
+  type MemoryEventType,
+  type MemoryApproach,
+  type MemorySentiment,
 
   // Constants
   DEFAULT_RESOURCES,
   DEFAULT_HIDDEN_STATE,
+  DEFAULT_RUN_MEMORY,
   CONSUMPTION_RATES,
   MILES_PER_DAY,
   TRAIL_WAYPOINTS,
