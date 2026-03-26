@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import type { GameState, GameAction } from '@whoreagon-trail/game-engine';
 import { characterStable } from '@whoreagon-trail/characters';
 import { streamDialogue } from '@whoreagon-trail/ai-client';
@@ -19,13 +19,19 @@ const COLD_OPEN_LINES = [
   { id: 'co-6', text: 'So does everyone else in this saloon.' },
 ];
 
+const AI_TIMEOUT_MS = 15_000;
+
 export default function WagonOpener({ state, dispatch }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [started, setStarted] = useState(false);
   const [inputEnabled, setInputEnabled] = useState(false);
   const [coldOpenDone, setColdOpenDone] = useState(false);
 
-  // Dispatch START_RUN immediately
+  // Refs prevent stale-closure bugs in effects that run once
+  const streamStarted = useRef(false);
+  const coldOpenStarted = useRef(false);
+
+  // Dispatch START_RUN once when there is no saved game state
   useEffect(() => {
     if (!state && !started) {
       dispatch({ type: 'START_RUN', party: characterStable });
@@ -33,36 +39,54 @@ export default function WagonOpener({ state, dispatch }: Props) {
     }
   }, [state, started, dispatch]);
 
-  // Show cold open lines with stagger, then start AI stream
+  // FIX: cold open effect must NOT have messages.length in dep array.
+  // Previously: dep array included messages.length, so every timer firing
+  // (which adds a message) re-ran the effect and the cleanup canceled the
+  // remaining timers — only the first cold-open line ever showed and
+  // setColdOpenDone(true) was never called, blocking the AI stream forever.
   useEffect(() => {
-    if (coldOpenDone || messages.length > 0) return;
+    if (coldOpenStarted.current) return;
+    coldOpenStarted.current = true;
 
-    // Show cold open with 350ms stagger per line
     const timers: ReturnType<typeof setTimeout>[] = [];
     COLD_OPEN_LINES.forEach((line, i) => {
       timers.push(setTimeout(() => {
         setMessages(prev => [...prev, { ...line, isStreaming: false }]);
       }, i * 350));
     });
-    // Mark cold open done after all lines shown
     timers.push(setTimeout(() => setColdOpenDone(true), COLD_OPEN_LINES.length * 350 + 200));
 
     return () => timers.forEach(clearTimeout);
-  }, [coldOpenDone, messages.length]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Start AI stream once state is ready and cold open is done
+  // Start AI stream once state is ready and cold open is done.
+  // FIX: use streamStarted ref instead of messages.some() — messages is stale
+  // inside this effect closure (not in dep array) so the old check was unreliable.
   useEffect(() => {
     if (!state || !coldOpenDone) return;
-    // Check we haven't already started streaming (no streaming message exists)
-    if (messages.some(m => m.isStreaming)) return;
+    if (streamStarted.current) return;
+    streamStarted.current = true;
 
     const streamingId = 'narrator-ai';
     setMessages(prev => [...prev, { id: streamingId, text: '', isStreaming: true }]);
     let accumulated = '';
 
+    const timeoutId = setTimeout(() => {
+      // If AI hasn't responded in AI_TIMEOUT_MS, surface fallback and unblock input
+      setMessages(prev => [
+        ...prev.filter(m => m.id !== streamingId),
+        {
+          id: 'fallback',
+          text: 'Delphine Marchais has been watching you since you walked in. She has the look of someone who has already decided something about you. She is waiting to find out if she is right.',
+          isStreaming: false,
+        },
+      ]);
+      setInputEnabled(true);
+    }, AI_TIMEOUT_MS);
+
     streamDialogue(
       state,
-      '__SCENE_START__: The player has just walked into the Blue Moon Saloon in Independence. They have agreed to lead this troupe west. Delphine Marchais is sizing them up. React to the player\'s presence. Give Delphine one line and one other character one line. Do not explain the premise — they are already in it.',
+      "__SCENE_START__: The player has just walked into the Blue Moon Saloon in Independence. They have agreed to lead this troupe west. Delphine Marchais is sizing them up. React to the player's presence. Give Delphine one line and one other character one line. Do not explain the premise — they are already in it.",
       (chunk: string) => {
         accumulated += chunk;
         setMessages(prev => prev.map(m =>
@@ -70,6 +94,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
         ));
       }
     ).then((response) => {
+      clearTimeout(timeoutId);
       const aiMsgs: DisplayMessage[] = response.dialogue.map((d, i) => ({
         id: `ai-${i}`,
         characterId: d.characterId,
@@ -79,10 +104,8 @@ export default function WagonOpener({ state, dispatch }: Props) {
       }));
       setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...aiMsgs]);
       setInputEnabled(true);
-      if (response.newFlags.includes('PROLOGUE_COMPLETE')) {
-        dispatch({ type: 'SET_FLAG', flag: 'PROLOGUE_COMPLETE' });
-      }
     }).catch(() => {
+      clearTimeout(timeoutId);
       setMessages(prev => prev.filter(m => m.id !== streamingId));
       setMessages(prev => [...prev, {
         id: 'fallback',
@@ -91,7 +114,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
       }]);
       setInputEnabled(true);
     });
-  }, [state, coldOpenDone]);
+  }, [state, coldOpenDone, dispatch]);
 
   const handleSubmit = useCallback(async (text: string) => {
     if (!state) return;
@@ -100,6 +123,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
     setMessages(prev => [...prev, playerMsg, { id: streamingId, text: '', isStreaming: true }]);
     setInputEnabled(false);
     let accumulated = '';
+
     await streamDialogue(state, text, (chunk: string) => {
       accumulated += chunk;
       setMessages(prev => prev.map(m => m.id === streamingId ? { ...m, text: accumulated } : m));
@@ -112,10 +136,14 @@ export default function WagonOpener({ state, dispatch }: Props) {
         text: d.text,
       }));
       setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
-      if (response.newFlags.includes('PROLOGUE_COMPLETE')) {
-        dispatch({ type: 'SET_FLAG', flag: 'PROLOGUE_COMPLETE' });
-      }
-    }).finally(() => setInputEnabled(true));
+    }).catch(() => {
+      setMessages(prev => prev.filter(m => m.id !== streamingId));
+    }).finally(() => {
+      // FIX: always dispatch PROLOGUE_COMPLETE after the first player interaction
+      // so the scene reliably advances regardless of AI flag response.
+      dispatch({ type: 'SET_FLAG', flag: 'PROLOGUE_COMPLETE' });
+      setInputEnabled(true);
+    });
   }, [state, dispatch]);
 
   return (
