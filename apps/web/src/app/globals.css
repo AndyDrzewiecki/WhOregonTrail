@@ -1,0 +1,60 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a0a00;
+  --paper: #2d1a00;
+  --cream: #f5e6c8;
+  --gold: #c9a227;
+  --gold-dim: #8b6914;
+  --muted: #8a7560;
+  --dark-card: #1f1008;
+  --error: #c0392b;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-mono: 'Courier New', monospace;
+  --scene-glow: #3d1f00;
+  --transition-scene: 600ms ease;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--cream);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+/* Focus */
+:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
+
+/* Dust particles */
+@keyframes float-dust {
+  from { transform: translateY(110vh); opacity: 0; }
+  10% { opacity: 0.15; }
+  90% { opacity: 0.15; }
+  to { transform: translateY(-10vh); opacity: 0; }
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scene-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.scene-enter { animation: scene-enter var(--transition-scene) ease forwards; }
+.fade-in { animation: fade-in 400ms ease forwards; }

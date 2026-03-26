@@ -6,6 +6,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { StorageAdapter } from './storage';
 import {
   type Character,
   type CharacterId,
@@ -855,8 +856,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'END_RUN': {
-      // Clear AsyncStorage key (fire-and-forget)
-      AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
       return { ...state, phase: 'END' };
     }
 
@@ -877,10 +876,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
  * - If no saved state, returns null (not an empty state — the UI needs to
  *   know there's no active run).
  */
-export function useGameState(): {
+export function useGameState(adapter?: StorageAdapter): {
   state: GameState | null;
   dispatch: (action: GameAction) => void;
+  isReady: boolean;
 } {
+  const asyncStorageCompat: StorageAdapter = {
+    getItem: async (key) => AsyncStorage.getItem(key),
+    setItem: async (key, value) => { await AsyncStorage.setItem(key, value); },
+    removeItem: async (key) => { await AsyncStorage.removeItem(key); },
+  };
+  const storage = adapter ?? asyncStorageCompat;
+
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasDispatched, setHasDispatched] = useState(false);
   const [savedState, setSavedState] = useState<GameState | null>(null);
@@ -911,7 +918,7 @@ export function useGameState(): {
 
     async function hydrate() {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await storage.getItem(STORAGE_KEY);
         if (cancelled) return;
         if (raw) {
           const parsed: GameState = JSON.parse(raw);
@@ -919,7 +926,7 @@ export function useGameState(): {
         }
       } catch {
         // Corrupted save — start fresh
-        console.warn('[game-engine] Failed to hydrate state from AsyncStorage');
+        console.warn('[game-engine] Failed to hydrate state from storage');
       } finally {
         if (!cancelled) {
           hydratedRef.current = true;
@@ -943,13 +950,20 @@ export function useGameState(): {
       ? (reducerState.runId ? reducerState : null)
       : savedState;
 
-  // Persist to AsyncStorage on every meaningful state change
+  // Persist to storage on every meaningful state change; clear on END_RUN
   useEffect(() => {
     if (!isHydrated) return;
     if (!currentState) return;
     if (!currentState.runId) return;
 
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentState)).catch((err) => {
+    if (currentState.phase === 'END') {
+      storage.removeItem(STORAGE_KEY).catch((err) => {
+        console.warn('[game-engine] Failed to clear state:', err);
+      });
+      return;
+    }
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(currentState)).catch((err) => {
       console.warn('[game-engine] Failed to persist state:', err);
     });
   }, [currentState, isHydrated]);
@@ -962,5 +976,5 @@ export function useGameState(): {
     []
   );
 
-  return { state: currentState, dispatch };
+  return { state: currentState, dispatch, isReady: isHydrated };
 }

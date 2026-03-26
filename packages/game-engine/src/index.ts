@@ -42,3 +42,6 @@ export {
   // Hook
   useGameState,
 } from './state';
+
+export type { StorageAdapter } from './storage';
+export { localStorageAdapter } from './storage';

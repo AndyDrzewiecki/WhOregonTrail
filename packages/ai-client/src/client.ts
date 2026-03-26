@@ -20,11 +20,11 @@ let _client: Anthropic | null = null;
 export function getClient(): Anthropic {
   if (_client) return _client;
 
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
+  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
 
   if (!apiKey || apiKey.startsWith('sk-ant-api03-your-key')) {
     throw new Error(
-      '[ai-client] EXPO_PUBLIC_ANTHROPIC_API_KEY is missing or is still the placeholder value.\n' +
+      '[ai-client] EXPO_PUBLIC_ANTHROPIC_API_KEY or NEXT_PUBLIC_ANTHROPIC_API_KEY is missing or is still the placeholder value.\n' +
       'Copy .env.example → .env and add your real key from https://console.anthropic.com'
     );
   }

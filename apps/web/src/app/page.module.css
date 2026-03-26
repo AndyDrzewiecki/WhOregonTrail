@@ -1,0 +1,76 @@
+.landing {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 120%, var(--scene-glow) 0%, var(--bg) 60%);
+  overflow: hidden;
+}
+
+.dust { position: absolute; inset: 0; pointer-events: none; }
+
+.particle {
+  position: absolute;
+  bottom: -4px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  animation: float-dust linear infinite;
+}
+
+.center {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  font-weight: normal;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+}
+
+.tagline {
+  color: var(--cream);
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 0.95rem;
+}
+
+.startButton {
+  margin-top: 32px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--gold-dim);
+  color: var(--cream);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 200ms, border-color 200ms;
+}
+
+.startButton:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+}
