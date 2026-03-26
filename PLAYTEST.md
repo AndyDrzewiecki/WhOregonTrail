@@ -28,24 +28,31 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## What to Expect
 
-**A full run takes ~20-30 minutes.** The loop:
+**A full run takes ~20-30 minutes.** The loop each day:
 
 1. **Prologue** — Scene-setting cold open
 2. **Character Introductions** — Meet who you're leading. Address them.
-3. **Planning** — Choose pace, route (Fort/Wilderness/Entertainment Circuit), role assignment
+3. **Planning** — Choose pace, route (Fort/Wilderness/Entertainment Circuit), and who leads if something goes wrong on the trail
 4. **Trail** — Events, conflicts, minigames
-5. **Campfire** — End-of-day processing. Characters react to what happened.
-6. Repeat until Oregon.
+5. **Coaching** *(conditional)* — Before reaching a fort or venue, pull one character aside privately if resentment or strain is high
+6. **Delegation** *(conditional)* — Assign roles (Speaker, Backup, Observer, Enforcer) before the encounter. Fires once per day if you have 2+ non-player alive party members.
+7. **Gatekeeper or Entertainment Circuit** — Negotiate entry or performance terms
+8. **Campfire** — End-of-day processing. Up to 3 exchanges. Characters react to what happened specifically.
+9. Repeat from Planning until Oregon.
 
 **Route choice matters.** Each route has different external pressures and internal consequences. You'll feel them.
 
 **Your decisions carry forward.** If you crossed a line earlier, the wagon remembers. If you protected someone, they remember that too.
 
+**After the campfire, you can:**
+- **Break camp** — continue to the next day's Planning
+- **Run it again** — start a fresh run with the same party
+
 ---
 
 ## Voice Input
 
-Hold the microphone button to speak. Chrome/Edge only. Text input always works.
+Hold the microphone button to speak. Chrome/Edge only. Text input always works everywhere.
 
 ---
 
@@ -55,7 +62,8 @@ Hold the microphone button to speak. Chrome/Edge only. Text input always works.
 - Mobile app (Expo) is separate; this guide covers web only
 - AI responses require active internet + valid API key
 - Some scenes have a 2-3 second AI generation delay (streaming shown live)
-- No save/load between browser sessions (localStorage only)
+- State persists across page refreshes (localStorage); closing and reopening resumes your run
+- Entertainment Circuit route requires money > $40 to appear as a route option — it won't appear on Day 1 with default resources
 
 ---
 
@@ -76,6 +84,7 @@ Or add `?debug=1` to the URL.
 Things worth noting as you play:
 - Did the route you chose feel different from the others?
 - Could you tell the wagon was reacting to earlier decisions?
+- Did the Delegation screen (role assignment before an encounter) feel meaningful or like overhead?
 - Was there a moment you felt like a captain rather than a menu-picker?
 - What broke the immersion?
 - What was surprisingly good?
@@ -84,6 +93,8 @@ Things worth noting as you play:
 
 ## Known Rough Edges
 - Minigames are intentionally lightweight (rhythm/timing/hunting)
-- The Entertainment Circuit scene is new and may be rough
+- Entertainment Circuit requires money to unlock — testers may not see it until mid-run
+- Coaching and Delegation are conditional — they won't appear every day
 - Character voice consistency improves as the run goes on (AI has more context)
-- Some transitions feel abrupt — noted, in progress
+- ConsequenceSummary (Campfire) shows the "Run it again" button only after all 3 exchanges complete
+- Campfire auto-advances to the next day after 3 exchanges if you use the command bar; or manually via "Break camp"

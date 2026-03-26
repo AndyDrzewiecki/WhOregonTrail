@@ -10,6 +10,7 @@ export type SceneName =
   | 'CONFLICT'
   | 'PLANNING'
   | 'COACHING'
+  | 'DELEGATION'
   | 'GATEKEEPER'
   | 'ENTERTAINMENT_CIRCUIT'
   | 'MINIGAME'
@@ -49,6 +50,15 @@ export function useSceneRouter(state: GameState | null): SceneName {
     )
   ) {
     return 'COACHING';
+  }
+  // Delegate the Room: fires before GATEKEEPER or ENTERTAINMENT_CIRCUIT if not already done today
+  // and party has at least 2 alive non-player members
+  if (
+    state.phase === 'FORT' &&
+    !state.flags.includes(`DELEGATED_DAY_${state.day}`) &&
+    state.party.filter(m => m.isAlive && m.id !== state.party[0]?.id).length >= 2
+  ) {
+    return 'DELEGATION';
   }
   // Entertainment circuit performance negotiation takes priority over standard gate entry
   if (state.phase === 'FORT' && state.route?.type === 'entertainment_circuit') return 'ENTERTAINMENT_CIRCUIT';

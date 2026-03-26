@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { GameState, GameAction, EventOutcome, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { getLocationDisplayName } from '@whoreagon-trail/game-engine';
 import { resolveEvent, streamDialogue } from '@whoreagon-trail/ai-client';
+import { ROUTE_ARC_EARLY_DONE, ROUTE_ARC_MID_DONE, ROUTE_ARC_LATE_DONE } from '@/components/SceneBridge';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
 import styles from './Scene.module.css';
@@ -18,6 +19,32 @@ export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
     if (!state || messages.length > 0) return;
 
     const { indebtedness, boundaryStrain, obedience } = state.hiddenState;
+    const flags = state.flags ?? [];
+
+    const earlyDone = flags.includes(ROUTE_ARC_EARLY_DONE);
+    const midDone = flags.includes(ROUTE_ARC_MID_DONE);
+    const lateDone = flags.includes(ROUTE_ARC_LATE_DONE);
+
+    // Determine arc signal and which flag to set this visit
+    let arcSignal = '';
+    let arcFlagToSet: string | null = null;
+
+    if (!earlyDone) {
+      arcSignal = `ARC EARLY: This is their first real exposure to the circuit's economics. Let the negotiation reveal what this life costs.`;
+      arcFlagToSet = ROUTE_ARC_EARLY_DONE;
+    } else if (!midDone) {
+      arcSignal = `ARC MID: They know the circuit now. The manager/booker is leveraging that knowledge. The exploitation risk is real.`;
+      arcFlagToSet = ROUTE_ARC_MID_DONE;
+    } else if (!lateDone) {
+      arcSignal = `ARC LATE: This is a known entity on the circuit. Reputation precedes them — for better or worse.`;
+      arcFlagToSet = ROUTE_ARC_LATE_DONE;
+    }
+
+    // Dispatch arc flag before the stream starts (flag needs to be recorded even if stream fails)
+    if (arcFlagToSet) {
+      dispatch({ type: 'SET_FLAG', flag: arcFlagToSet });
+    }
+
     const priorPerformanceSignal = (state.runMemory?.events.filter(e => e.type === 'performance_outcome').length ?? 0) > 0
       ? `This is not the first performance negotiation. The troupe has been through this before — ${
           (state.runMemory?.events.filter(e => e.type === 'performance_outcome' && e.sentiment === 'negative').length ?? 0) > 0
@@ -38,12 +65,31 @@ export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
       obedience < 40
         ? `Obedience is low. Not everyone will do what you agree to without being asked directly.`
         : null,
-    ].filter(Boolean).join(' ');
+      arcSignal || null,
+    ].filter(Boolean).join('\n\n');
+
+    // Build delegation context from flags set by DelegationScene
+    const speakerId   = state.flags.find(f => f.startsWith('SPEAKER:'))?.replace('SPEAKER:', '');
+    const backupId    = state.flags.find(f => f.startsWith('BACKUP:'))?.replace('BACKUP:', '');
+    const observerId  = state.flags.find(f => f.startsWith('OBSERVER:'))?.replace('OBSERVER:', '');
+    const enforcerId  = state.flags.find(f => f.startsWith('ENFORCER:'))?.replace('ENFORCER:', '');
+    const speakerName  = speakerId  ? state.party.find(p => p.id === speakerId)?.name  : null;
+    const backupName   = backupId   ? state.party.find(p => p.id === backupId)?.name   : null;
+    const observerName = observerId ? state.party.find(p => p.id === observerId)?.name : null;
+    const enforcerName = enforcerId ? state.party.find(p => p.id === enforcerId)?.name : null;
+    let delegationSignal = '';
+    if (speakerName)  delegationSignal += `\nDELEGATION: ${speakerName} has been assigned as speaker for this encounter.`;
+    if (backupName)   delegationSignal += ` ${backupName} is backup.`;
+    if (observerName) delegationSignal += ` ${observerName} is observing.`;
+    if (enforcerName) delegationSignal += ` ${enforcerName} is the exit option.`;
+    if (delegationSignal) delegationSignal += ' Let the AI respond to who is speaking — their personality and relationship history should color the negotiation.';
+
+    const fullSignal = signal + delegationSignal;
 
     const streamingId = 'ec-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, signal, (chunk) => {
+    streamDialogue(state, fullSignal, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
     }, 'FORT').then((response) => {

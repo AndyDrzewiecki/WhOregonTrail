@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { GameState, GameAction, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { streamDialogue, resolveEvent } from '@whoreagon-trail/ai-client';
+import { buildCharacterCallbackSignal } from '@/lib/characterCallbackUtils';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
 import styles from './Scene.module.css';
@@ -43,6 +44,8 @@ export default function CoachingScene({ state, dispatch }: Props) {
         ? 'strained'
         : 'uncertain';
 
+    const characterCallback = buildCharacterCallbackSignal(state, coachTarget.id, 'coaching');
+
     const contextParts = [
       `__PRIVATE_COACHING__: The player has pulled ${coachTarget.name} aside before the upcoming ${venueWord}.`,
       `This is a private moment. ${coachTarget.name} is ${temperament} — give them a realistic response to the player approaching them privately.`,
@@ -50,6 +53,7 @@ export default function CoachingScene({ state, dispatch }: Props) {
       isUsed ? `${coachTarget.name} has been asked to take risks before. They remember.` : null,
       isProtected ? `${coachTarget.name} has been looked out for. They feel some trust.` : null,
       boundaryCrossed ? `A boundary was crossed earlier. ${coachTarget.name} is watching for it to happen again.` : null,
+      characterCallback || null,
     ].filter(Boolean).join(' ');
 
     const streamingId = 'coach-0';

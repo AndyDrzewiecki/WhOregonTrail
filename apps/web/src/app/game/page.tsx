@@ -1,5 +1,6 @@
 'use client';
 export const dynamic = 'force-dynamic';
+import { useEffect } from 'react';
 import { useWebGameState } from '@/hooks/useWebGameState';
 import WagonOpener from '@/scenes/WagonOpener';
 import CharacterIntroductions from '@/scenes/CharacterIntroductions';
@@ -9,15 +10,24 @@ import GatekeeperScene from '@/scenes/GatekeeperScene';
 import CoachingScene from '@/scenes/CoachingScene';
 import EntertainmentCircuitScene from '@/scenes/EntertainmentCircuitScene';
 import MinigameInterruption from '@/scenes/MinigameInterruption';
+import DelegationScene from '@/scenes/DelegationScene';
 import ConsequenceSummary from '@/scenes/ConsequenceSummary';
 import SceneTransition from '@/components/SceneTransition';
 import SceneBridge from '@/components/SceneBridge';
 import DebugHUD from '@/components/DebugHUD';
+import AudioToggle from '@/components/AudioToggle';
 import { useSceneRouter } from '@/hooks/useSceneRouter';
+import { playAtmosphere } from '@/lib/audioAtmosphere';
 
 export default function GamePage() {
   const { state, dispatch, isReady } = useWebGameState();
   const scene = useSceneRouter(state);
+
+  useEffect(() => {
+    if (isReady && state) {
+      playAtmosphere(state.route?.type ?? null, scene);
+    }
+  }, [scene, isReady]);
 
   if (!isReady) {
     return (
@@ -41,6 +51,7 @@ export default function GamePage() {
       case 'CONFLICT':              return <ConflictScene state={state} dispatch={dispatch} />;
       case 'PLANNING':              return <PlanningMode state={state} dispatch={dispatch} />;
       case 'COACHING':              return <CoachingScene state={state} dispatch={dispatch} />;
+      case 'DELEGATION':            return <DelegationScene state={state} dispatch={dispatch} />;
       case 'GATEKEEPER':            return <GatekeeperScene state={state} dispatch={dispatch} />;
       case 'ENTERTAINMENT_CIRCUIT': return <EntertainmentCircuitScene state={state} dispatch={dispatch} />;
       case 'MINIGAME':              return <MinigameInterruption state={state} dispatch={dispatch} />;
@@ -56,6 +67,7 @@ export default function GamePage() {
         {renderScene()}
       </SceneTransition>
       <DebugHUD state={state} scene={scene} />
+      <AudioToggle scene={scene} routeType={state?.route?.type ?? null} />
     </>
   );
 }

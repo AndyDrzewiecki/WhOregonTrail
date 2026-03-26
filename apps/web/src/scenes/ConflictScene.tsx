@@ -2,7 +2,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { GameState, GameAction, EventOutcome, MemoryEvent } from '@whoreagon-trail/game-engine';
 import { resolveEvent, streamDialogue } from '@whoreagon-trail/ai-client';
-import { buildSpotlightSignal } from '@/lib/spotlightUtils';
+import { buildSpotlightSignal, selectSpotlightCharacter } from '@/lib/spotlightUtils';
+import { buildCharacterCallbackSignal } from '@/lib/characterCallbackUtils';
+import { ROUTE_ARC_EARLY_DONE, ROUTE_ARC_MID_DONE, ROUTE_ARC_LATE_DONE } from '@/components/SceneBridge';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
 import styles from './Scene.module.css';
@@ -21,6 +23,28 @@ export default function ConflictScene({ state, dispatch }: Props) {
     const resentment = state.hiddenState?.resentment ?? 10;
     const boundaryStrain = state.hiddenState?.boundaryStrain ?? 0;
     const routeType = state.route?.type ?? null;
+    const flags = state.flags ?? [];
+
+    // Map route type to human-readable name for arc signals
+    const routeHumanName = routeType === 'fort_route'
+      ? 'fort'
+      : routeType === 'wilderness_route'
+        ? 'wilderness'
+        : routeType === 'entertainment_circuit'
+          ? 'circuit'
+          : null;
+
+    const earlyDone = flags.includes(ROUTE_ARC_EARLY_DONE);
+    const midDone = flags.includes(ROUTE_ARC_MID_DONE);
+    const lateDone = flags.includes(ROUTE_ARC_LATE_DONE);
+
+    const arcSignal = (() => {
+      if (!routeType || !routeHumanName) return '';
+      if (lateDone) return `ARC PAYOFF: This conflict carries the weight of everything they've been through on the ${routeHumanName} arc. The resolution here feels final.`;
+      if (midDone) return `ARC PRESSURE: The ${routeHumanName} complication has already hit. People are still processing it. This conflict is downstream of that pressure.`;
+      if (earlyDone) return `ARC BUILD: The ${routeHumanName} route is showing its teeth. This conflict is early fallout.`;
+      return `ARC START: The ${routeHumanName} route is just beginning to reveal its character.`;
+    })();
 
     const economyContext = resentment > 50
       ? `Internal resentment is HIGH — this conflict has a history behind it, not just this event.`
@@ -56,13 +80,38 @@ export default function ConflictScene({ state, dispatch }: Props) {
       return '';
     })();
 
+    // Alternate entrance framing based on run history
+    const priorConflicts = state.runMemory.events.filter(e => e.type === 'conflict_outcome').length;
+    const priorFailures = state.runMemory.events.filter(e => e.type === 'conflict_outcome' && e.sentiment === 'negative').length;
+    let entranceVariant = '';
+    if (priorConflicts === 0) {
+      entranceVariant = 'ENTRANCE: This is the first real test of authority. The wagon is watching to see how the captain handles it.';
+    } else if (priorFailures >= 2) {
+      entranceVariant = 'ENTRANCE: They\'ve seen the captain lose the room before. Skepticism is already present before anyone speaks.';
+    } else if (priorConflicts >= 3) {
+      entranceVariant = 'ENTRANCE: The captain has been here enough times that people don\'t even wait to be surprised anymore.';
+    }
+
+    const spotlightId = selectSpotlightCharacter(state);
+    const characterCallback = spotlightId
+      ? buildCharacterCallbackSignal(state, spotlightId, 'conflict')
+      : '';
+
     const conflictSignal = [
+      entranceVariant,
       `__CONFLICT__: An internal party conflict is in progress. Event that triggered it: ${lastEvent.type}. ${lastEvent.description}. Two characters are visibly in conflict. Show both sides. Do not resolve it yet. Let the player walk into the middle of it.`,
       economyContext,
       routeChainSignal,
       callbackSignal,
+      arcSignal,
       buildSpotlightSignal(state),
-    ].filter(Boolean).join(' ');
+      characterCallback,
+    ].filter(Boolean).join('\n\n');
+
+    // Set ROUTE_ARC_EARLY_DONE if this is an early-trail conflict on a chosen route
+    if (routeType && !earlyDone && state.day <= 3) {
+      dispatch({ type: 'SET_FLAG', flag: ROUTE_ARC_EARLY_DONE });
+    }
 
     const streamingId = 'conflict-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
