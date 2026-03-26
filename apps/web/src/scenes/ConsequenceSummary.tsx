@@ -16,24 +16,27 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
 
   useEffect(() => {
     if (!state || messages.length > 0) return;
+    dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' });
     const streamingId = 'camp-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, '__CAMPFIRE_START__', (chunk) => {
+    const recentSummary = state.eventHistory.slice(-3).map(e => e.description).join('; ');
+    streamDialogue(state, `__CAMPFIRE_START__: Reflect on today. Recent events: ${recentSummary}. Characters should react to SPECIFIC things that happened, not generic trail hardship. If someone died today, someone is grieving. If a conflict went unresolved, someone is still angry. Campfire is where the real feelings come out.`, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
-    }).then((response) => {
+    }, 'CAMPFIRE').then((response) => {
       setMessages(response.dialogue.map((d, i) => ({
         id: `camp-${i}`, characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       })));
       setInputEnabled(true);
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'The fire crackles. No one speaks for a while.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: 'The fire burns low. Delphine is cleaning her boots. Someone is crying quietly at the edge of the firelight. Nobody asks who.', isStreaming: false }]);
       setInputEnabled(true);
     });
-  }, [state]);
+  }, [state, dispatch]);
 
   const handleSubmit = useCallback(async (text: string) => {
     if (!state || exchanges >= MAX) return;
@@ -50,6 +53,7 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
         id: `r-${Date.now()}-${i}`,
         characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       }));
       setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
@@ -70,12 +74,12 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
       </div>
       <DialogueStream messages={messages} />
       {exchanges < MAX && (
-        <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Speak around the fire..." />
+        <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="The fire's going. Say what needs saying." />
       )}
       {exchanges >= MAX && (
         <div style={{ padding: '16px clamp(16px,5vw,48px)', textAlign: 'center' }}>
           <button className={styles.advanceBtn} onClick={() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' })}>
-            Press On &rarr;
+            Day {state?.day ?? 1} complete. Break camp &rarr;
           </button>
         </div>
       )}

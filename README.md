@@ -1,149 +1,73 @@
 # Whoreagon Trail
 
-A Mel Brooks-style reimagining of Oregon Trail. A burlesque troupe of sex workers must cross the American frontier in 1848, performing shows at forts to fund the journey while holding their community together.
-
-> "Comedy is not decoration. The comedy IS the message."
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| App | React Native + Expo SDK 55 |
-| Routing | Expo Router (file-based) |
-| Build | EAS Build (APK/AAB) |
-| Narrative AI | Anthropic API — claude-sonnet-4-20250514 |
-| Map/Minigames | React Native Skia |
-| State persistence | AsyncStorage |
-| IAP | RevenueCat — $0.99/playthrough |
-| Monorepo | Turborepo + npm workspaces |
-
----
+A Mel Brooks-style comedic Oregon Trail reimagining. 1848. A burlesque troupe heads west.
 
 ## Monorepo Structure
 
-```
-WhoreagonTrail/
-├── apps/
-│   └── mobile/              # Expo app (Android-first)
-│       ├── app/             # Expo Router screens
-│       │   ├── index.tsx    # Entry / IAP gate
-│       │   └── (game)/
-│       │       ├── prologue.tsx
-│       │       ├── trail.tsx
-│       │       ├── setup/characters.tsx
-│       │       └── fort/[fortId]/index.tsx
-│       ├── app.json
-│       └── eas.json
-├── packages/
-│   ├── game-engine/         # State machine, relationship engine, resource tick
-│   ├── ai-client/           # Anthropic API wrapper + prompt templates
-│   ├── characters/          # Character schema + stable of 20
-│   └── assets/              # Typed asset references
-├── turbo.json
-├── package.json             # npm workspaces root
-└── tsconfig.json
-```
+- `apps/mobile` — React Native / Expo (Android-first, production build)
+- `apps/web` — Next.js 15 browser vertical slice (development / demo path)
+- `packages/game-engine` — State machine, reducer, trail constants
+- `packages/characters` — 20-character stable, OCEAN personalities, relationship system
+- `packages/ai-client` — Claude API wrapper, streaming, prompts, retry logic
 
-> **Legacy Unity files**: `Assets/` and `backend/` are preserved from a prior prototype. Do not modify them.
+## Quick Start — Browser (Recommended for Demo)
 
----
-
-## Two-Window PowerShell Workflow
-
-Open **two PowerShell terminals** in the `WhoreagonTrail/` root.
-
-### Window 1 — Metro Bundler
-```powershell
-cd apps/mobile
-npx expo start --android
-```
-Keeps the Metro JS bundler running. Connect your Android device via USB or start an emulator before running this.
-
-### Window 2 — Dev Commands
-Use this window for all other commands: installing packages, running type checks, committing, etc.
-
-```powershell
-# Install all workspace dependencies (run once after clone)
+```bash
+# From repo root
 npm install
 
-# Type-check the entire monorepo
-npx tsc --noEmit
+# Set up environment
+cd apps/web
+cp .env.local.example .env.local
+# Edit .env.local and add your Anthropic API key
 
-# Type-check with Turborepo (runs all package typechecks in dependency order)
-npx turbo typecheck
-
-# Verify Expo dependency versions are correct
-cd apps/mobile && npx expo install --check && cd ../..
+# Run the browser slice
+npm run dev
+# Opens at http://localhost:3000
 ```
 
----
+## Quick Start — Mobile (Android)
 
-## First-Time Setup
-
-```powershell
-# 1. Clone
-git clone https://github.com/AndyDrzewiecki/WhOregonTrail.git
-cd WhOregonTrail
-
-# 2. Install dependencies
-npm install
-
-# 3. Copy env file and add your keys
-cp .env.example .env
-# Edit .env: add EXPO_PUBLIC_ANTHROPIC_API_KEY and EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
-
-# 4. Verify types compile
-npx tsc --noEmit
-
-# 5. Start Metro (Window 1)
+```bash
 cd apps/mobile
-npx expo start --android
+npx expo start
+# Press 'a' to open Android emulator
 ```
-
----
-
-## EAS Build (ask before running — requires Expo account)
-
-```powershell
-cd apps/mobile
-
-# Install EAS CLI (once)
-npm install -g eas-cli
-
-# Log in
-eas login
-
-# Development APK (sideload on device)
-eas build --profile development --platform android
-
-# Production AAB (for Play Store)
-eas build --profile production --platform android
-```
-
-> Do not run EAS Build without confirming with the project lead. Builds consume EAS credits and require the correct `projectId` in `app.json`.
-
----
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `EXPO_PUBLIC_ANTHROPIC_API_KEY` | Yes | Anthropic API key from console.anthropic.com |
-| `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | Yes (Issue 5) | RevenueCat Android public SDK key |
+| App | Variable | Purpose |
+|-----|----------|---------|
+| `apps/web` | `NEXT_PUBLIC_ANTHROPIC_API_KEY` | Claude API key for browser |
+| `apps/mobile` | `EXPO_PUBLIC_ANTHROPIC_API_KEY` | Claude API key for mobile |
 
----
+Get a key at https://console.anthropic.com
 
-## Phase 1 Issues
+## Development
 
-| # | Title | Priority | Status |
-|---|---|---|---|
-| 1 | Monorepo scaffold + EAS baseline | P0 | Done |
-| 2 | Anthropic API client + prompts | P0 | Pending |
-| 3 | Character schema + stable (20 chars) | P0 | Pending |
-| 4 | Core game state machine | P0 | Pending |
-| 5 | RevenueCat IAP | P1 | Pending |
+```bash
+npm run dev      # Run all apps (web + mobile Metro)
+npm run build    # Build all packages
+npm run lint     # Lint all packages
+```
+
+## Browser Vertical Slice — Scene Flow
+
+The browser slice at `apps/web` is a 7-scene playable demo of the full game loop:
+
+1. **Wagon Opener** — Skyrim-parody cold open, troupe in Independence
+2. **Character Introductions** — Meet the party, first impressions
+3. **Conflict** — Internal party conflict, player as captain/mediator
+4. **Planning Mode** — Pace selection, resource management
+5. **Gatekeeper** — Fort entry negotiation with a hostile NPC
+6. **Minigame** — Browser-native performance/hunting mechanic
+7. **Consequence Summary** — Campfire reflection on the day's events
+
+## Architecture Notes
+
+- `useGameState(adapter?)` accepts a storage adapter — `localStorage` for web, `AsyncStorage` for mobile
+- All AI calls go through `packages/ai-client` — same code for both targets
+- Voice input (push-to-talk) is optional in the browser; gracefully disabled if Web Speech API unavailable
 
 ---
 

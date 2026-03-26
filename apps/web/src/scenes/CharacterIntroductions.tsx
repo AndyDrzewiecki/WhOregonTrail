@@ -18,7 +18,7 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
     const streamingId = 'intro-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let accumulated = '';
-    streamDialogue(state, '__PARTY_ASSEMBLE__', (chunk) => {
+    streamDialogue(state, '__PARTY_ASSEMBLE__: The player has just agreed to lead this troupe west. Introduce 3-4 characters with distinct first impressions. Make at least one immediately likeable, one immediately suspicious, and one immediately funny. Do not introduce everyone at once.', (chunk) => {
       accumulated += chunk;
       setMessages([{ id: streamingId, text: accumulated, isStreaming: true }]);
     }).then((response) => {
@@ -26,12 +26,13 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
         id: `intro-msg-${i}`,
         characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       }));
       setMessages(display);
       setInputEnabled(true);
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'Twelve faces look to you. Some hopeful. Some not.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: 'Delphine lights a cheroot without looking up. Someone in the back is arguing about a mule. You have approximately forty-five seconds before this becomes your problem.', isStreaming: false }]);
       setInputEnabled(true);
     });
   }, [state]);
@@ -51,13 +52,18 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
         id: `r-${Date.now()}-${i}`,
         characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       }));
       setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
       const next = exchanges + 1;
       setExchanges(next);
       if (next >= 2 || response.newFlags.some(f => f.includes('TRAIL'))) {
-        setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 1200);
+        const transitionId = `transition-${Date.now()}`;
+        setTimeout(() => {
+          setMessages(prev => [...prev, { id: transitionId, text: 'The wagon rolls west.', isStreaming: false }]);
+        }, 400);
+        setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 1400);
       }
     }).finally(() => setInputEnabled(true));
   }, [state, dispatch, exchanges]);
@@ -68,7 +74,7 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
         <span className={styles.location}>The Troupe — Independence Saloon</span>
       </div>
       <DialogueStream messages={messages} />
-      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Address the troupe..." />
+      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="They need to hear it from you." />
     </div>
   );
 }

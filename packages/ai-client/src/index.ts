@@ -12,6 +12,8 @@ import { systemPrompt as trailPrompt } from './prompts/trail';
 import { systemPrompt as fortPrompt } from './prompts/fort';
 import { systemPrompt as campfirePrompt } from './prompts/campfire';
 import { systemPrompt as finalePrompt } from './prompts/finale';
+import { systemPrompt as fortGatekeeperPrompt } from './prompts/fortGatekeeper';
+import { systemPrompt as conflictMediatorPrompt } from './prompts/conflictMediator';
 import { withRetry } from './retry';
 import type { GameState } from '@whoreagon-trail/game-engine';
 
@@ -57,6 +59,15 @@ export type AIResponse = {
   relationshipLabel?: string;
 };
 
+export type PromptKey =
+  | 'PROLOGUE'
+  | 'TRAIL'
+  | 'CAMPFIRE'
+  | 'FORT'
+  | 'FORT_GATEKEEPER'
+  | 'CONFLICT_MEDIATOR'
+  | 'FINALE';
+
 /**
  * Trail events that can be resolved via resolveEvent().
  */
@@ -76,6 +87,12 @@ function getSystemPrompt(phase: string): string {
       return trailPrompt;
     case 'FORT':
       return fortPrompt;
+    case 'FORT_GATEKEEPER':
+      return fortGatekeeperPrompt;
+    case 'CONFLICT_MEDIATOR':
+      return conflictMediatorPrompt;
+    case 'CAMPFIRE':
+      return campfirePrompt;
     case 'FINALE':
       return finalePrompt;
     default:
@@ -179,7 +196,8 @@ function gameStateToUserMessage(gameState: GameState, extra: string): string {
  */
 export async function generateDialogue(
   gameState: GameState,
-  playerInput: string
+  playerInput: string,
+  promptKey?: string
 ): Promise<AIResponse> {
   return withRetry(async () => {
     const client = getClient();
@@ -187,7 +205,7 @@ export async function generateDialogue(
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: getSystemPrompt(gameState.phase),
+      system: getSystemPrompt(promptKey ?? gameState.phase),
       messages: [
         {
           role: 'user',
@@ -208,7 +226,8 @@ export async function generateDialogue(
 export async function resolveEvent(
   gameState: GameState,
   event: TrailEvent,
-  playerChoice: string
+  playerChoice: string,
+  promptKey?: string
 ): Promise<AIResponse> {
   return withRetry(async () => {
     const client = getClient();
@@ -227,7 +246,7 @@ export async function resolveEvent(
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: getSystemPrompt(gameState.phase),
+      system: getSystemPrompt(promptKey ?? gameState.phase),
       messages: [
         {
           role: 'user',
@@ -279,7 +298,8 @@ export async function generateEpilogue(
 export async function streamDialogue(
   gameState: GameState,
   playerInput: string,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  promptKey?: string
 ): Promise<AIResponse> {
   return withRetry(async () => {
     const client = getClient();
@@ -287,7 +307,7 @@ export async function streamDialogue(
     const stream = await client.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: getSystemPrompt(gameState.phase),
+      system: getSystemPrompt(promptKey ?? gameState.phase),
       messages: [
         {
           role: 'user',

@@ -6,6 +6,7 @@ export interface DisplayMessage {
   id: string;
   characterId?: string;
   characterName?: string;
+  voiceTag?: string;
   text: string;
   isPlayer?: boolean;
   isStreaming?: boolean;
@@ -27,7 +28,10 @@ export default function DialogueStream({ messages }: Props) {
       {messages.map((msg) => (
         <div key={msg.id} className={`${styles.message} ${msg.isPlayer ? styles.player : styles.character} fade-in`}>
           {!msg.isPlayer && msg.characterName && (
-            <span className={styles.speaker}>{msg.characterName.toUpperCase()}</span>
+            <span className={styles.speaker}>
+              {msg.characterName.toUpperCase()}
+              {msg.voiceTag && <span className={styles.voiceTag}> — {msg.voiceTag}</span>}
+            </span>
           )}
           <span className={styles.text}>
             {msg.text}

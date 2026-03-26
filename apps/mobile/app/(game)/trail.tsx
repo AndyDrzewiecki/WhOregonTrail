@@ -19,7 +19,7 @@ import {
   type TrailEventTemplate,
   type TrailLocation,
 } from '@whoreagon-trail/game-engine';
-import { type AIResponse } from '@whoreagon-trail/ai-client';
+import { generateDialogue, type AIResponse } from '@whoreagon-trail/ai-client';
 import EventCard from '@/src/components/EventCard';
 import PartyModal from '@/src/components/PartyModal';
 import TrailMap from '@/src/components/TrailMap';
@@ -54,6 +54,7 @@ export default function TrailScreen() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [activeEvent, setActiveEvent] = useState<TrailEventTemplate | null>(null);
   const [recentDeaths, setRecentDeaths] = useState<string[]>([]);
+  const [deathReactionText, setDeathReactionText] = useState<string>('');
   const [showParty, setShowParty] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
@@ -95,15 +96,26 @@ export default function TrailScreen() {
     dispatch({ type: 'ADVANCE_DAY', pace });
 
     if (deathNames.length > 0) {
-      // TODO: death narrative - see Phase 2 notes
-      // For each name in deathNames, find the characterId from state.party,
-      // then call: generateDialogue(state, '__CHARACTER_DEATH__:' + characterId)
-      // Store the returned dialogue[0].text in a deathNarrative state variable.
-      // Show the narrative in a small overlay (or DialogueLog) before the death
-      // modal. The overlay dismisses on tap, then setRecentDeaths(deathNames)
-      // shows the existing death modal. This should be non-blocking (fire-and-
-      // forget the AI call, fall back to showing the modal directly if it fails).
       setRecentDeaths(deathNames);
+      // Non-blocking death narrative reaction
+      const deadMember = state.party.find(m => m.name === deathNames[0]);
+      const deadCharacterId = deadMember?.id;
+      if (deadCharacterId) {
+        void (async () => {
+          try {
+            const deathResponse = await generateDialogue(
+              state,
+              `__CHARACTER_DEATH__:${deadCharacterId}`
+            );
+            if (deathResponse.dialogue.length > 0) {
+              // Show first line of reaction in the death modal below the death notification
+              setDeathReactionText(deathResponse.dialogue[0].text);
+            }
+          } catch {
+            // Non-critical — death narrative failure should never block the game
+          }
+        })();
+      }
     }
     if (projectedAlive.length === 0) {
       dispatch({ type: 'SET_PHASE', phase: 'END' });
@@ -164,11 +176,27 @@ export default function TrailScreen() {
         }
       }
       if (eventDeaths.length > 0) {
-        // TODO: death narrative - see Phase 2 notes
-        // For each name in eventDeaths, find the characterId and call:
-        // generateDialogue(state, '__CHARACTER_DEATH__:' + characterId)
-        // Show dialogue[0].text in an overlay before setRecentDeaths fires.
         setRecentDeaths(prev => [...prev, ...eventDeaths]);
+        // Non-blocking death narrative reaction
+        const deadCharacterId = response.eventOutcome?.healthChanges?.find(
+          hc => hc.delta + (state.party.find(m => m.id === hc.characterId)?.health ?? 100) <= 0
+        )?.characterId;
+        if (deadCharacterId) {
+          void (async () => {
+            try {
+              const deathResponse = await generateDialogue(
+                state,
+                `__CHARACTER_DEATH__:${deadCharacterId}`
+              );
+              if (deathResponse.dialogue.length > 0) {
+                // Show first line of reaction in the death modal below the death notification
+                setDeathReactionText(deathResponse.dialogue[0].text);
+              }
+            } catch {
+              // Non-critical — death narrative failure should never block the game
+            }
+          })();
+        }
       }
     }
 
@@ -342,9 +370,12 @@ export default function TrailScreen() {
               {recentDeaths.map((name, i) => (
                 <Text key={i} style={styles.deathText}>{name} has died on the trail.</Text>
               ))}
+              {deathReactionText.length > 0 && (
+                <Text style={styles.deathReactionText}>{deathReactionText}</Text>
+              )}
               <TouchableOpacity
                 style={styles.deathContinueButton}
-                onPress={() => setRecentDeaths([])}
+                onPress={() => { setRecentDeaths([]); setDeathReactionText(''); }}
               >
                 <Text style={styles.deathContinueText}>Press on</Text>
               </TouchableOpacity>
@@ -605,6 +636,14 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  deathReactionText: {
+    fontSize: 13,
+    color: COLORS.goldDim,
+    fontStyle: 'italic',
+    marginBottom: 12,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   deathContinueButton: {
     backgroundColor: COLORS.darkCard,

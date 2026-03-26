@@ -15,9 +15,8 @@ export function useSceneRouter(state: GameState | null): SceneName {
     return 'CHARACTER_INTRODUCTIONS';
   }
   if (state.phase === 'FORT') return 'GATEKEEPER';
-  // NOTE: 'CAMPFIRE' is not in the Phase union (phases: PROLOGUE|SETUP|TRAIL|FORT|FINALE|END)
-  // Kept as runtime guard in case it is added later.
-  if ((state.phase as string) === 'CAMPFIRE') return 'SUMMARY';
+  if (state.phase === 'CAMPFIRE') return 'SUMMARY';
+  if (state.phase === 'FINALE' || state.phase === 'END') return 'SUMMARY';
   if (state.phase === 'TRAIL') {
     // Check if there's an active event that triggers minigame
     const lastEvent = state.eventHistory[state.eventHistory.length - 1];

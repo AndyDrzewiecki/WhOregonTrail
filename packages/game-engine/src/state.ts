@@ -23,7 +23,7 @@ export type { CharacterId, RelationshipMatrix };
 
 // ── Phase ────────────────────────────────────────────────────────────────────
 
-export type Phase = 'PROLOGUE' | 'SETUP' | 'TRAIL' | 'FORT' | 'FINALE' | 'END';
+export type Phase = 'PROLOGUE' | 'SETUP' | 'TRAIL' | 'CAMPFIRE' | 'FORT' | 'FINALE' | 'END';
 
 // ── ResourceState ────────────────────────────────────────────────────────────
 

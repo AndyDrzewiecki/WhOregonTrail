@@ -12,6 +12,7 @@ interface Props { state: GameState | null; dispatch: (a: GameAction) => void; }
 export default function GatekeeperScene({ state, dispatch }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputEnabled, setInputEnabled] = useState(false);
+  const [negotiating, setNegotiating] = useState(false);
 
   useEffect(() => {
     if (!state || messages.length > 0) return;
@@ -21,15 +22,16 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
     streamDialogue(state, '__FORT_ENTRY__', (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
-    }).then((response) => {
+    }, 'FORT_GATEKEEPER').then((response) => {
       setMessages(response.dialogue.map((d, i) => ({
         id: `g-${i}`, characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       })));
       setInputEnabled(true);
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'A heavyset man in a worn uniform blocks the gate. He looks you up and down.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: 'A man built like a grain warehouse blocks the gate. He has the look of someone who has said no to a lot of people and enjoyed every time. He looks at Delphine. Then at you. Then back at Delphine.', isStreaming: false }]);
       setInputEnabled(true);
     });
   }, [state]);
@@ -40,15 +42,18 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
     const streamingId = `s-${Date.now()}`;
     setMessages(prev => [...prev, playerMsg, { id: streamingId, text: '', isStreaming: true }]);
     setInputEnabled(false);
+    setNegotiating(true);
     const response = await resolveEvent(
       state,
       { type: 'fort_arrival', description: `Arriving at ${getLocationDisplayName(state.location)}` },
-      text
+      text,
+      'FORT_GATEKEEPER'
     );
     const newMsgs: DisplayMessage[] = response.dialogue.map((d, i) => ({
       id: `r-${Date.now()}-${i}`,
       characterId: d.characterId,
       characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      voiceTag: d.tone,
       text: d.text,
     }));
     setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
@@ -69,9 +74,12 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
         <span className={styles.location}>
           {state ? getLocationDisplayName(state.location) : 'Fort'} — Gate
         </span>
+        <span style={{ fontSize: '0.65rem', color: negotiating ? 'var(--gold)' : 'var(--error)', letterSpacing: '0.1em' }}>
+          {negotiating ? 'ENTRY GRANTED' : 'ENTRY DENIED'}
+        </span>
       </div>
       <DialogueStream messages={messages} />
-      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="What do you say to the gatekeeper..." />
+      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Pick your words carefully." />
     </div>
   );
 }

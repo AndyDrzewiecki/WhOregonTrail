@@ -19,18 +19,19 @@ export default function ConflictScene({ state, dispatch }: Props) {
     const streamingId = 'conflict-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, `__EVENT__:${lastEvent.type}`, (chunk) => {
+    streamDialogue(state, `__CONFLICT__: An internal party conflict is in progress. Event that triggered it: ${lastEvent.type}. ${lastEvent.description}. Two characters are visibly in conflict. Show both sides. Do not resolve it yet. Let the player walk into the middle of it.`, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
-    }).then((response) => {
+    }, 'CONFLICT_MEDIATOR').then((response) => {
       setMessages(response.dialogue.map((d, i) => ({
         id: `c-${i}`, characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       })));
       setInputEnabled(true);
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'Tension fills the wagon. Everyone waits for you to act.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: 'You walk in to find Mama Szabo holding a ladle like a weapon and Reverend Cain looking like he is reconsidering his entire theology. Neither of them stops when they see you. That is, in your experience, a bad sign.', isStreaming: false }]);
       setInputEnabled(true);
     });
   }, [state]);
@@ -50,6 +51,7 @@ export default function ConflictScene({ state, dispatch }: Props) {
       id: `r-${Date.now()}-${i}`,
       characterId: d.characterId,
       characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      voiceTag: d.tone,
       text: d.text,
     }));
     setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
@@ -70,7 +72,7 @@ export default function ConflictScene({ state, dispatch }: Props) {
         <span className={styles.location}>Trail Event</span>
       </div>
       <DialogueStream messages={messages} />
-      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="How do you handle this..." />
+      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Step in. Or don't. Both choices cost something." />
     </div>
   );
 }

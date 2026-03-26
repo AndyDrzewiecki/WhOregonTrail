@@ -34,6 +34,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
         id: `msg-${i}`,
         characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       }));
       setMessages(display);
@@ -42,7 +43,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
         dispatch({ type: 'SET_FLAG', flag: 'PROLOGUE_COMPLETE' });
       }
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'The dust settles. Independence lies quiet in the morning cold.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: 'You were born in a small village in Moravia. You were not supposed to end up here. Delphine Marchais has been staring at you since you walked in.', isStreaming: false }]);
       setInputEnabled(true);
     });
   }, [state]);
@@ -62,6 +63,7 @@ export default function WagonOpener({ state, dispatch }: Props) {
         id: `resp-${Date.now()}-${i}`,
         characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: d.tone,
         text: d.text,
       }));
       setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
@@ -74,10 +76,10 @@ export default function WagonOpener({ state, dispatch }: Props) {
   return (
     <div className={styles.scene}>
       <div className={styles.header}>
-        <span className={styles.location}>Independence, Missouri — April 1848</span>
+        <span className={styles.location}>The Blue Moon Saloon — Independence, Missouri — April 1848</span>
       </div>
       <DialogueStream messages={messages} />
-      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Speak up, Captain..." />
+      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Say something. They're all looking at you." />
     </div>
   );
 }

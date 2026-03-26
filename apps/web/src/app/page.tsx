@@ -21,9 +21,13 @@ export default function HomePage() {
         <h1 className={styles.title}>WHOREAGON TRAIL</h1>
         <p className={styles.subtitle}>Independence, Missouri. 1848.</p>
         <p className={styles.tagline}>A burlesque troupe&apos;s passage west.</p>
+        <p className={styles.premise}>
+          Comedy. Frontier. Twelve people who shouldn&apos;t be in the same wagon.
+        </p>
         <button className={styles.startButton} onClick={() => router.push('/game')}>
           Begin the Journey
         </button>
+        <p className={styles.note}>Requires Anthropic API key. Text + optional voice input.</p>
       </div>
       <div className={styles.vignette} />
     </main>

@@ -8,6 +8,13 @@ interface Props { state: GameState | null; dispatch: (a: GameAction) => void; }
 type TargetState = 'growing' | 'inZone' | 'miss' | 'hit';
 
 export default function MinigameInterruption({ state, dispatch }: Props) {
+  const lastEventType = state?.eventHistory[state.eventHistory.length - 1]?.type;
+  const isHunting = lastEventType === 'hunting_opportunity';
+  const minigameTitle = isHunting ? 'Hunting Break' : 'Performance Opportunity';
+  const minigameInstruction = isHunting
+    ? 'Click each target as it enters the sweet zone. Food depends on your timing.'
+    : 'The crowd is watching. Hit your marks.';
+
   const [phase, setPhase] = useState<'ready' | 'playing' | 'result'>('ready');
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
@@ -81,8 +88,8 @@ export default function MinigameInterruption({ state, dispatch }: Props) {
     <div className={styles.minigameOverlay}>
       {phase === 'ready' && (
         <>
-          <p className={styles.minigameTitle}>Performance Opportunity</p>
-          <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Click the target when the ring glows gold.</p>
+          <p className={styles.minigameTitle}>{minigameTitle}</p>
+          <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{minigameInstruction}</p>
           <button className={styles.advanceBtn} onClick={start}>Begin &rarr;</button>
         </>
       )}
@@ -101,9 +108,14 @@ export default function MinigameInterruption({ state, dispatch }: Props) {
       )}
       {phase === 'result' && tier && (
         <>
-          <p className={styles.minigameTitle}>{tier === 'SUCCESS' ? 'Crowd Roars' : tier === 'PARTIAL' ? 'Polite Applause' : 'Scattered Boos'}</p>
-          <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
-            {tier === 'SUCCESS' ? 'You earned $60.' : tier === 'PARTIAL' ? 'You earned $30.' : 'No earnings.'}
+          <p className={styles.minigameTitle}>
+            {tier === 'SUCCESS'
+              ? 'The Crowd Goes Wild — $60 earned'
+              : tier === 'PARTIAL'
+                ? 'Polite Applause — $30 earned'
+                : isHunting
+                  ? 'Missed Clean — no food earned'
+                  : 'The Crowd Turns — no earnings'}
           </p>
           <button className={styles.advanceBtn} onClick={() => finish(tier)}>Continue &rarr;</button>
         </>
