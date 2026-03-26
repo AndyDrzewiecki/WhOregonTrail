@@ -95,6 +95,14 @@ export default function TrailScreen() {
     dispatch({ type: 'ADVANCE_DAY', pace });
 
     if (deathNames.length > 0) {
+      // TODO: death narrative - see Phase 2 notes
+      // For each name in deathNames, find the characterId from state.party,
+      // then call: generateDialogue(state, '__CHARACTER_DEATH__:' + characterId)
+      // Store the returned dialogue[0].text in a deathNarrative state variable.
+      // Show the narrative in a small overlay (or DialogueLog) before the death
+      // modal. The overlay dismisses on tap, then setRecentDeaths(deathNames)
+      // shows the existing death modal. This should be non-blocking (fire-and-
+      // forget the AI call, fall back to showing the modal directly if it fails).
       setRecentDeaths(deathNames);
     }
     if (projectedAlive.length === 0) {
@@ -156,6 +164,10 @@ export default function TrailScreen() {
         }
       }
       if (eventDeaths.length > 0) {
+        // TODO: death narrative - see Phase 2 notes
+        // For each name in eventDeaths, find the characterId and call:
+        // generateDialogue(state, '__CHARACTER_DEATH__:' + characterId)
+        // Show dialogue[0].text in an overlay before setRecentDeaths fires.
         setRecentDeaths(prev => [...prev, ...eventDeaths]);
       }
     }

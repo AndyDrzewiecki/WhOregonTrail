@@ -360,20 +360,41 @@ export const TRAIL_EVENTS: TrailEventTemplate[] = [
 export function selectTrailEvent(state: GameState): TrailEventTemplate | null {
   if (Math.random() < 0.65) return null;
   const aliveMembers = state.party.filter((m) => m.isAlive);
-  const avgHealth =
-    aliveMembers.length > 0
-      ? aliveMembers.reduce((sum, m) => sum + m.health, 0) / aliveMembers.length
-      : 50;
-  const isLow = state.resources.food < 30 || state.resources.water < 1;
-  const isHigh = avgHealth > 70;
-  const eligible = TRAIL_EVENTS.filter(
-    (e) =>
-      e.weightedWhen === 'always' ||
-      (e.weightedWhen === 'lowResources' && isLow) ||
-      (e.weightedWhen === 'highHealth' && isHigh)
-  );
-  if (!eligible.length) return null;
-  return eligible[Math.floor(Math.random() * eligible.length)];
+  // Weighting thresholds: lowResources matches task spec (food<50 || water<50),
+  // using water<2 as proxy for water<50 in barrel units (50 lbs of food = low)
+  const isLowResources = state.resources.food < 50 || state.resources.water < 2;
+  const isHighHealth = aliveMembers.length > 0 && aliveMembers.every((m) => m.health > 70);
+
+  // Build weighted pool: assign a weight to each eligible event
+  //   'lowResources' + condition met  → 3×
+  //   'highHealth'   + condition met  → 2×
+  //   'always'                        → 1×
+  //   condition not met               → excluded
+  type WeightedEntry = { event: TrailEventTemplate; weight: number };
+  const weightedPool: WeightedEntry[] = [];
+
+  for (const e of TRAIL_EVENTS) {
+    if (e.weightedWhen === 'always') {
+      weightedPool.push({ event: e, weight: 1 });
+    } else if (e.weightedWhen === 'lowResources' && isLowResources) {
+      weightedPool.push({ event: e, weight: 3 });
+    } else if (e.weightedWhen === 'highHealth' && isHighHealth) {
+      weightedPool.push({ event: e, weight: 2 });
+    }
+    // else: condition not met — exclude from pool
+  }
+
+  if (!weightedPool.length) return null;
+
+  // Weighted random selection
+  const totalWeight = weightedPool.reduce((sum, entry) => sum + entry.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const entry of weightedPool) {
+    roll -= entry.weight;
+    if (roll <= 0) return entry.event;
+  }
+  // Fallback (floating-point edge case)
+  return weightedPool[weightedPool.length - 1].event;
 }
 
 // ── Minigame config ─────────────────────────────────────────────────────────

@@ -14,9 +14,10 @@ import {
   getLocationDisplayName,
   selectPerformanceMinigame,
 } from '@whoreagon-trail/game-engine';
+import FortGatekeeperScene from '@/src/components/FortGatekeeperScene';
 import { COLORS } from '@/src/constants/colors';
 
-type FortView = 'hub' | 'trade' | 'rest';
+type FortView = 'gatekeeper' | 'hub' | 'trade' | 'rest';
 
 interface TradeCart {
   food: number;
@@ -40,7 +41,7 @@ export default function FortScreen() {
   const { fortId } = useLocalSearchParams<{ fortId: string }>();
   const { state, dispatch } = useGameState();
 
-  const [view, setView] = useState<FortView>('hub');
+  const [view, setView] = useState<FortView>('gatekeeper');
 
   // Trade state
   const [cart, setCart] = useState<TradeCart>({ food: 0, water: 0, ammo: 0, medicine: 0, wheel: 0, axle: 0 });
@@ -126,6 +127,18 @@ export default function FortScreen() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (view === 'gatekeeper') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <FortGatekeeperScene
+          gameState={state}
+          fortName={fortName}
+          onComplete={() => setView('hub')}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (view === 'hub') {
     return (

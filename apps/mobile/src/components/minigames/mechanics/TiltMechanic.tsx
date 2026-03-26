@@ -22,6 +22,8 @@ import { COLORS } from '@/src/constants/colors';
 import { scoreToTier } from '../MinigameEngine';
 import type { MechanicProps } from './shared';
 
+const SENSOR_UNAVAILABLE_AUTO_COMPLETE_MS = 3000;
+
 const TARGET_ANGLE = 0.4;   // radians — moderate tilt
 const TOLERANCE = 0.15;      // acceptable window around target
 const HAPTIC_INTERVAL_MS = 400;
@@ -31,6 +33,7 @@ export default function TiltMechanic({ config, onComplete, onProgress }: Mechani
   const [tiltY, setTiltY] = useState(0);
   const [timeLeft, setTimeLeft] = useState(config.durationMs);
   const [holdMs, setHoldMs] = useState(0);
+  const [sensorUnavailable, setSensorUnavailable] = useState(false);
   const holdRef = useRef(0);
   const lastHapticRef = useRef(0);
   const subRef = useRef<ReturnType<typeof Gyroscope.addListener> | null>(null);
@@ -41,9 +44,33 @@ export default function TiltMechanic({ config, onComplete, onProgress }: Mechani
 
   const inWindow = Math.abs(tiltY - targetAngle) <= tolerance;
 
+  // Detect sensor availability on mount
+  useEffect(() => {
+    let cancelled = false;
+    Gyroscope.isAvailableAsync().then((available) => {
+      if (!cancelled && !available) {
+        setSensorUnavailable(true);
+      }
+    }).catch(() => {
+      if (!cancelled) setSensorUnavailable(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Auto-complete at PARTIAL after 3s when sensor is unavailable and playing
+  useEffect(() => {
+    if (!sensorUnavailable || phase !== 'playing') return;
+    const timer = setTimeout(() => {
+      // PARTIAL tier: score of 50
+      onComplete({ tier: 'PARTIAL', score: 50 });
+    }, SENSOR_UNAVAILABLE_AUTO_COMPLETE_MS);
+    return () => clearTimeout(timer);
+  }, [sensorUnavailable, phase, onComplete]);
+
   // Subscribe to gyroscope
   useEffect(() => {
     if (phase !== 'playing') return;
+    if (sensorUnavailable) return;
 
     Gyroscope.setUpdateInterval(100);
     subRef.current = Gyroscope.addListener(({ y }) => {
@@ -56,7 +83,7 @@ export default function TiltMechanic({ config, onComplete, onProgress }: Mechani
     return () => {
       subRef.current?.remove();
     };
-  }, [phase]);
+  }, [phase, sensorUnavailable]);
 
   // Haptic pulse when in-window
   const handleHaptic = useCallback(() => {
@@ -132,6 +159,19 @@ export default function TiltMechanic({ config, onComplete, onProgress }: Mechani
         </Text>
         <Text style={styles.resultScore}>
           {(holdRef.current / 1000).toFixed(1)}s in zone
+        </Text>
+      </View>
+    );
+  }
+
+  // Sensor-unavailable fallback: show countdown message while auto-completing
+  if (sensorUnavailable && phase === 'playing') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>{config.title}</Text>
+        <Text style={styles.instructions}>
+          Tilt unavailable on this device.{'\n\n'}
+          Completing automatically in a moment...
         </Text>
       </View>
     );
