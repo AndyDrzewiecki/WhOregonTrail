@@ -17,6 +17,7 @@ export default function GameLayout() {
       <Stack.Screen name="setup/supplies" />
       <Stack.Screen name="fort/[fortId]/index" />
       <Stack.Screen name="minigame/[gameId]" />
+      <Stack.Screen name="settings" options={{ presentation: 'modal', animation: 'fade' }} />
       <Stack.Screen name="finale" />
       <Stack.Screen name="end" />
     </Stack>

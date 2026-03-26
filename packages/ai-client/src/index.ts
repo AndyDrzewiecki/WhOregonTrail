@@ -12,6 +12,7 @@ import { systemPrompt as trailPrompt } from './prompts/trail';
 import { systemPrompt as fortPrompt } from './prompts/fort';
 import { systemPrompt as campfirePrompt } from './prompts/campfire';
 import { systemPrompt as finalePrompt } from './prompts/finale';
+import { withRetry } from './retry';
 import type { GameState } from '@whoreagon-trail/game-engine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -180,22 +181,24 @@ export async function generateDialogue(
   gameState: GameState,
   playerInput: string
 ): Promise<AIResponse> {
-  const client = getClient();
+  return withRetry(async () => {
+    const client = getClient();
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: getSystemPrompt(gameState.phase),
-    messages: [
-      {
-        role: 'user',
-        content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
-      },
-    ],
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: getSystemPrompt(gameState.phase),
+      messages: [
+        {
+          role: 'user',
+          content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
+        },
+      ],
+    });
+
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    return parseAIResponse(raw);
   });
-
-  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-  return parseAIResponse(raw);
 }
 
 /**
@@ -207,33 +210,35 @@ export async function resolveEvent(
   event: TrailEvent,
   playerChoice: string
 ): Promise<AIResponse> {
-  const client = getClient();
+  return withRetry(async () => {
+    const client = getClient();
 
-  const extra = [
-    `EVENT TYPE: ${event.type}`,
-    `EVENT DESCRIPTION: ${event.description}`,
-    event.involvedCharacterIds
-      ? `INVOLVED CHARACTERS: ${event.involvedCharacterIds.join(', ')}`
-      : '',
-    `PLAYER CHOICE: ${playerChoice}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
+    const extra = [
+      `EVENT TYPE: ${event.type}`,
+      `EVENT DESCRIPTION: ${event.description}`,
+      event.involvedCharacterIds
+        ? `INVOLVED CHARACTERS: ${event.involvedCharacterIds.join(', ')}`
+        : '',
+      `PLAYER CHOICE: ${playerChoice}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: getSystemPrompt(gameState.phase),
-    messages: [
-      {
-        role: 'user',
-        content: gameStateToUserMessage(gameState, extra),
-      },
-    ],
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: getSystemPrompt(gameState.phase),
+      messages: [
+        {
+          role: 'user',
+          content: gameStateToUserMessage(gameState, extra),
+        },
+      ],
+    });
+
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    return parseAIResponse(raw);
   });
-
-  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-  return parseAIResponse(raw);
 }
 
 /**
@@ -243,25 +248,27 @@ export async function resolveEvent(
 export async function generateEpilogue(
   gameState: GameState
 ): Promise<AIResponse> {
-  const client = getClient();
+  return withRetry(async () => {
+    const client = getClient();
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2000, // Epilogue needs more tokens
-    system: getSystemPrompt('FINALE'),
-    messages: [
-      {
-        role: 'user',
-        content: gameStateToUserMessage(
-          gameState,
-          'Generate the epilogue for this run. One fate card per surviving character, then the run summary.'
-        ),
-      },
-    ],
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: 2000, // Epilogue needs more tokens
+      system: getSystemPrompt('FINALE'),
+      messages: [
+        {
+          role: 'user',
+          content: gameStateToUserMessage(
+            gameState,
+            'Generate the epilogue for this run. One fate card per surviving character, then the run summary.'
+          ),
+        },
+      ],
+    });
+
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    return parseAIResponse(raw);
   });
-
-  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-  return parseAIResponse(raw);
 }
 
 /**
@@ -274,31 +281,33 @@ export async function streamDialogue(
   playerInput: string,
   onChunk: (text: string) => void
 ): Promise<AIResponse> {
-  const client = getClient();
+  return withRetry(async () => {
+    const client = getClient();
 
-  const stream = await client.messages.stream({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: getSystemPrompt(gameState.phase),
-    messages: [
-      {
-        role: 'user',
-        content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
-      },
-    ],
-  });
+    const stream = await client.messages.stream({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: getSystemPrompt(gameState.phase),
+      messages: [
+        {
+          role: 'user',
+          content: gameStateToUserMessage(gameState, `PLAYER INPUT: ${playerInput}`),
+        },
+      ],
+    });
 
-  let accumulated = '';
+    let accumulated = '';
 
-  for await (const event of stream) {
-    if (
-      event.type === 'content_block_delta' &&
-      event.delta.type === 'text_delta'
-    ) {
-      accumulated += event.delta.text;
-      onChunk(event.delta.text);
+    for await (const event of stream) {
+      if (
+        event.type === 'content_block_delta' &&
+        event.delta.type === 'text_delta'
+      ) {
+        accumulated += event.delta.text;
+        onChunk(event.delta.text);
+      }
     }
-  }
 
-  return parseAIResponse(accumulated);
+    return parseAIResponse(accumulated);
+  });
 }

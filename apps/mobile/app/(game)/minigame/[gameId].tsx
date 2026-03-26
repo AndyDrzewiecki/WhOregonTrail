@@ -1,16 +1,24 @@
 /**
  * MINIGAME SCREEN
  * Loads the config for the given gameId and renders the appropriate mechanic.
- * Currently supports: hunting (TapMechanic)
+ * Supports: hunting (TapMechanic) + performance minigames (MinigameEngine)
  */
 import { View, Text, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useGameState, HUNTING_MINIGAME, type MinigameConfig } from '@whoreagon-trail/game-engine';
+import {
+  useGameState,
+  HUNTING_MINIGAME,
+  PERFORMANCE_MINIGAMES,
+  type MinigameConfig,
+} from '@whoreagon-trail/game-engine';
 import TapMechanic from '@/src/components/minigames/TapMechanic';
+import { MinigameEngine, type MinigameResult } from '@/src/components/minigames/MinigameEngine';
+import { useSkillModifier } from '@/src/hooks/useSkillModifier';
 import { COLORS } from '@/src/constants/colors';
 
 const MINIGAME_REGISTRY: Record<string, MinigameConfig> = {
   hunting: HUNTING_MINIGAME,
+  ...Object.fromEntries(PERFORMANCE_MINIGAMES.map((c) => [c.id, c])),
 };
 
 export default function MinigameScreen() {
@@ -18,6 +26,7 @@ export default function MinigameScreen() {
   const { state, dispatch } = useGameState();
 
   const config = gameId ? MINIGAME_REGISTRY[gameId] : undefined;
+  const { scoreFloor, timeBonus } = useSkillModifier(config?.mechanic ?? (config ? 'TAP' : undefined));
 
   if (!config) {
     return (
@@ -34,9 +43,34 @@ export default function MinigameScreen() {
     );
   }
 
+  // Performance minigames (RHYTHM, HOLD, SWIPE, etc.) use MinigameEngine
+  if (config.mechanic && config.mechanic !== 'TAP') {
+    const handleEngineComplete = (result: MinigameResult) => {
+      if (!state) return;
+
+      // Map tier to money reward
+      if (config.moneyReward) {
+        const { min, max } = config.moneyReward;
+        const multiplier =
+          result.tier === 'SUCCESS' ? 1.0 :
+          result.tier === 'PARTIAL' ? 0.5 :
+          0.1;
+        const earned = Math.round((min + (max - min) * (result.score / 100)) * multiplier);
+        dispatch({
+          type: 'UPDATE_RESOURCES',
+          changes: { money: state.resources.money + earned },
+        });
+      }
+
+      setTimeout(() => router.back(), 1500);
+    };
+
+    return <MinigameEngine config={config} onComplete={handleEngineComplete} scoreFloor={scoreFloor} />;
+  }
+
+  // TAP / hunting mechanic
   const handleComplete = (hits: number, _misses: number) => {
     if (!state) return;
-    // Award food proportional to hits, deduct ammo (absolute values for UPDATE_RESOURCES)
     const foodEarned = Math.round((config.reward.food ?? 0) * (hits / config.targetCount));
     const ammoUsed = hits + _misses;
 
@@ -47,9 +81,9 @@ export default function MinigameScreen() {
       dispatch({ type: 'UPDATE_RESOURCES', changes });
     }
 
-    // Navigate back after a brief pause
     setTimeout(() => router.back(), 1500);
   };
 
-  return <TapMechanic config={config} onComplete={handleComplete} />;
+  const boostedConfig: MinigameConfig = { ...config, durationMs: config.durationMs + timeBonus };
+  return <TapMechanic config={boostedConfig} onComplete={handleComplete} />;
 }

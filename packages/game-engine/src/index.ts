@@ -27,6 +27,7 @@ export {
   TRAIL_WAYPOINTS,
   TRAIL_EVENTS,
   HUNTING_MINIGAME,
+  PERFORMANCE_MINIGAMES,
 
   // Reducer
   gameReducer,
@@ -36,6 +37,7 @@ export {
   getLocationDisplayName,
   getMilesBetween,
   selectTrailEvent,
+  selectPerformanceMinigame,
 
   // Hook
   useGameState,

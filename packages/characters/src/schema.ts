@@ -31,7 +31,17 @@ export type Character = {
 
 export type RelationshipMatrix = Record<CharacterId, Record<CharacterId, number>>;
 
-export function createRelationshipMatrix(characters: Character[]): RelationshipMatrix {
+export type RelationshipSeed = {
+  a: CharacterId;
+  b: CharacterId;
+  scoreAtoB: number;
+  scoreBtoA: number;
+};
+
+export function createRelationshipMatrix(
+  characters: Character[],
+  seeds?: RelationshipSeed[]
+): RelationshipMatrix {
   // Initialize all pairs to 0
   const matrix: RelationshipMatrix = {};
   for (const a of characters) {
@@ -42,6 +52,18 @@ export function createRelationshipMatrix(characters: Character[]): RelationshipM
       }
     }
   }
+
+  // Apply seeds for characters present in the party
+  if (seeds) {
+    const ids = new Set(characters.map((c) => c.id));
+    for (const seed of seeds) {
+      if (ids.has(seed.a) && ids.has(seed.b)) {
+        matrix[seed.a][seed.b] = seed.scoreAtoB;
+        matrix[seed.b][seed.a] = seed.scoreBtoA;
+      }
+    }
+  }
+
   return matrix;
 }
 

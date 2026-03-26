@@ -59,7 +59,7 @@ export const DialogueLog: React.FC<DialogueLogProps> = ({
   }, [messages.length]);
 
   const getItemLayout = (
-    data: DisplayMessage[] | null,
+    _data: ArrayLike<DisplayMessage> | null | undefined,
     index: number
   ): { length: number; offset: number; index: number } => {
     return { length: 60, offset: 60 * index, index };

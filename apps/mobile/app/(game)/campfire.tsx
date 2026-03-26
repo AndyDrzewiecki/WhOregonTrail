@@ -242,7 +242,15 @@ export default function CampfireScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Night Camp</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+          <Text style={styles.title}>Night Camp</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(game)/settings')}
+            style={{ position: 'absolute', right: 16, borderWidth: 1, borderColor: COLORS.goldDim, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 2 }}
+          >
+            <Text style={{ fontSize: 11, color: COLORS.goldDim, letterSpacing: 1 }}>Menu</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subtitle}>Day {state?.day ?? '...'}</Text>
         {!isComplete && exchangeCount > 0 && (
           <Text style={styles.exchangeCounter}>
