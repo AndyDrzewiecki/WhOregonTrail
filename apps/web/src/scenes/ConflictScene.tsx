@@ -16,10 +16,28 @@ export default function ConflictScene({ state, dispatch }: Props) {
     if (!state || messages.length > 0) return;
     const lastEvent = state.eventHistory[state.eventHistory.length - 1];
     if (!lastEvent) { dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }); return; }
+
+    const resentment = state.hiddenState?.resentment ?? 10;
+    const boundaryStrain = state.hiddenState?.boundaryStrain ?? 0;
+    const routeType = state.route?.type ?? null;
+
+    const economyContext = resentment > 50
+      ? `Internal resentment is HIGH — this conflict has a history behind it, not just this event.`
+      : boundaryStrain > 40
+        ? `Boundary strain is elevated — someone in the wagon has been pushed past their comfort and this is related.`
+        : routeType === 'entertainment_circuit'
+          ? `The entertainment circuit route is straining the troupe. This conflict is partly about the choices being made.`
+          : '';
+
+    const conflictSignal = [
+      `__CONFLICT__: An internal party conflict is in progress. Event that triggered it: ${lastEvent.type}. ${lastEvent.description}. Two characters are visibly in conflict. Show both sides. Do not resolve it yet. Let the player walk into the middle of it.`,
+      economyContext,
+    ].filter(Boolean).join(' ');
+
     const streamingId = 'conflict-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, `__CONFLICT__: An internal party conflict is in progress. Event that triggered it: ${lastEvent.type}. ${lastEvent.description}. Two characters are visibly in conflict. Show both sides. Do not resolve it yet. Let the player walk into the middle of it.`, (chunk) => {
+    streamDialogue(state, conflictSignal, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
     }, 'CONFLICT_MEDIATOR').then((response) => {
@@ -62,6 +80,16 @@ export default function ConflictScene({ state, dispatch }: Props) {
       newFlags: response.newFlags,
     };
     dispatch({ type: 'APPLY_EVENT_OUTCOME', outcome });
+
+    const result = response.eventOutcome.result;
+    if (result === 'success') {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: -10, obedience: 5 } });
+    } else if (result === 'partial_success') {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: 5, boundaryStrain: 5 } });
+    } else {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: 15, obedience: -10 } });
+    }
+
     setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2000);
     setInputEnabled(false);
   }, [state, dispatch]);

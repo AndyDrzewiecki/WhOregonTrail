@@ -62,6 +62,34 @@ export type StressTag =
   | 'discovery'
   | 'achievement';
 
+// ── RouteType ────────────────────────────────────────────────────────────────
+
+export type RouteType = 'fort_route' | 'wilderness_route' | 'entertainment_circuit';
+
+// ── RouteProfile ─────────────────────────────────────────────────────────────
+// Chosen at the start of each trail leg. Shapes encounter profiles downstream.
+
+export type RouteProfile = {
+  type: RouteType;
+  chosenOnDay: number;
+  gatekeeperIntensity: 'high' | 'low';  // fort=high, wilderness=low, circuit=high
+  exposureLevel: 'high' | 'low';         // wilderness=high, fort=low, circuit=high
+  socialCost: 'high' | 'low';            // circuit=high, others=low
+};
+
+// ── HiddenState ───────────────────────────────────────────────────────────────
+// These are never shown as bars or meters. They influence AI dialogue and
+// encounter framing. They accumulate over a run and create replay variance.
+
+export type HiddenState = {
+  protection: number;      // 0-100: how protected vulnerable members feel
+  stigmaPressure: number;  // 0-100: external judgment / reputation burden at forts
+  indebtedness: number;    // 0-100: wagon owes outsiders favors or obligations
+  resentment: number;      // 0-100: internal resentment toward player's decisions
+  obedience: number;       // 0-100: willingness to follow player orders without question
+  boundaryStrain: number;  // 0-100: how much the troupe's limits have been pushed
+};
+
 // ── EventHistoryEntry ────────────────────────────────────────────────────────
 
 export type EventHistoryEntry = {
@@ -113,6 +141,8 @@ export type GameState = {
   milesUntilNextStop: number;
   totalMilesTraveled: number;
   difficulty: 'easy' | 'normal' | 'hard';
+  route: RouteProfile | null;
+  hiddenState: HiddenState;
 };
 
 // ── Default resource values for a new run ────────────────────────────────────
@@ -126,6 +156,15 @@ export const DEFAULT_RESOURCES: ResourceState = {
   ammunition: 0,
   medicine: 0,
   wagonParts: { wheels: 2, axles: 1, tongues: 1 },
+};
+
+export const DEFAULT_HIDDEN_STATE: HiddenState = {
+  protection: 50,
+  stigmaPressure: 20,
+  indebtedness: 0,
+  resentment: 10,
+  obedience: 60,
+  boundaryStrain: 0,
 };
 
 // ── Resource consumption per day per person at each pace ─────────────────────
@@ -527,7 +566,9 @@ export type GameAction =
   | { type: 'ADD_PARTY_MEMBERS'; members: Character[] }
   | { type: 'ADVANCE_LOCATION' }
   | { type: 'APPLY_EVENT_OUTCOME'; outcome: EventOutcome }
-  | { type: 'END_RUN' };
+  | { type: 'END_RUN' }
+  | { type: 'SET_ROUTE'; route: RouteProfile }
+  | { type: 'APPLY_HIDDEN_DELTA'; delta: Partial<HiddenState> };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -581,6 +622,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         milesUntilNextStop: 200,
         totalMilesTraveled: 0,
         difficulty: 'normal',
+        route: null,
+        hiddenState: { ...DEFAULT_HIDDEN_STATE },
       };
     }
 
@@ -859,6 +902,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, phase: 'END' };
     }
 
+    case 'SET_ROUTE':
+      return { ...state, route: action.route };
+
+    case 'APPLY_HIDDEN_DELTA': {
+      const current = state.hiddenState;
+      const updated: HiddenState = {
+        protection:     Math.max(0, Math.min(100, current.protection     + (action.delta.protection     ?? 0))),
+        stigmaPressure: Math.max(0, Math.min(100, current.stigmaPressure + (action.delta.stigmaPressure ?? 0))),
+        indebtedness:   Math.max(0, Math.min(100, current.indebtedness   + (action.delta.indebtedness   ?? 0))),
+        resentment:     Math.max(0, Math.min(100, current.resentment     + (action.delta.resentment     ?? 0))),
+        obedience:      Math.max(0, Math.min(100, current.obedience      + (action.delta.obedience      ?? 0))),
+        boundaryStrain: Math.max(0, Math.min(100, current.boundaryStrain + (action.delta.boundaryStrain ?? 0))),
+      };
+      return { ...state, hiddenState: updated };
+    }
+
     default: {
       return state;
     }
@@ -908,6 +967,8 @@ export function useGameState(adapter?: StorageAdapter): {
     milesUntilNextStop: 200,
     totalMilesTraveled: 0,
     difficulty: 'normal',
+    route: null,
+    hiddenState: { ...DEFAULT_HIDDEN_STATE },
   };
 
   const [reducerState, rawDispatch] = useReducer(gameReducer, initialState);

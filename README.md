@@ -10,23 +10,23 @@ A Mel Brooks-style comedic Oregon Trail reimagining. 1848. A burlesque troupe he
 - `packages/characters` — 20-character stable, OCEAN personalities, relationship system
 - `packages/ai-client` — Claude API wrapper, streaming, prompts, retry logic
 
-## Quick Start — Browser (Recommended for Demo)
+## Quick Start
+
+### Browser Demo (Recommended)
+
+The browser slice is the fastest way to experience and share the game.
 
 ```bash
-# From repo root
-npm install
-
-# Set up environment
 cd apps/web
 cp .env.local.example .env.local
-# Edit .env.local and add your Anthropic API key
+# Edit .env.local: add NEXT_PUBLIC_ANTHROPIC_API_KEY
 
-# Run the browser slice
+npm install
 npm run dev
-# Opens at http://localhost:3000
+# → http://localhost:3000
 ```
 
-## Quick Start — Mobile (Android)
+### Mobile (Android production build)
 
 ```bash
 cd apps/mobile
@@ -64,6 +64,10 @@ The browser slice at `apps/web` is a 7-scene playable demo of the full game loop
 7. **Consequence Summary** — Campfire reflection on the day's events
 
 ## Architecture Notes
+
+> **Demo path**: `apps/web` is the recommended demo and development surface.
+> `apps/mobile` is the production Android build. Both share the same game-engine,
+> characters, and AI client packages.
 
 - `useGameState(adapter?)` accepts a storage adapter — `localStorage` for web, `AsyncStorage` for mobile
 - All AI calls go through `packages/ai-client` — same code for both targets

@@ -19,9 +19,13 @@ export {
   type CharacterId,
   type MinigameConfig,
   type RelationshipMatrix,
+  type RouteType,
+  type RouteProfile,
+  type HiddenState,
 
   // Constants
   DEFAULT_RESOURCES,
+  DEFAULT_HIDDEN_STATE,
   CONSUMPTION_RATES,
   MILES_PER_DAY,
   TRAIL_WAYPOINTS,

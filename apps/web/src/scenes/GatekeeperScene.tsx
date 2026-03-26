@@ -16,10 +16,26 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
 
   useEffect(() => {
     if (!state || messages.length > 0) return;
+
+    const routeType = state.route?.type ?? 'fort_route';
+    const stigma = state.hiddenState?.stigmaPressure ?? 20;
+
+    const gatekeeperContext = [
+      `__FORT_ENTRY__`,
+      `Route: ${routeType.replace(/_/g, ' ')}.`,
+      stigma > 60
+        ? `Stigma pressure level: HIGH — rumors have preceded the troupe.`
+        : stigma > 35
+          ? `Stigma pressure level: MODERATE — word is traveling.`
+          : `Stigma pressure level: LOW — relatively unknown here.`,
+      `The gatekeeper should reflect this. High stigma means they know exactly what this wagon is and have already decided something about it.`,
+      `Low stigma means they are suspicious but not certain. Give them specific body language and a specific concern.`,
+    ].join(' ');
+
     const streamingId = 'gate-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, '__FORT_ENTRY__', (chunk) => {
+    streamDialogue(state, gatekeeperContext, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
     }, 'FORT_GATEKEEPER').then((response) => {
@@ -64,6 +80,14 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
       newFlags: response.newFlags,
     };
     dispatch({ type: 'APPLY_EVENT_OUTCOME', outcome });
+
+    const result = response.eventOutcome.result;
+    if (result === 'failure') {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { stigmaPressure: 10, resentment: 5 } });
+    } else {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { stigmaPressure: -5, protection: 5 } });
+    }
+
     setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2500);
     setInputEnabled(false);
   }, [state, dispatch]);

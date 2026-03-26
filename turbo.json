@@ -4,7 +4,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".expo/**"]
+      "outputs": ["dist/**", ".expo/**", ".next/**"]
+    },
+    "web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
