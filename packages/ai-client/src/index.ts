@@ -151,6 +151,20 @@ function parseAIResponse(raw: string): AIResponse {
   };
 }
 
+function buildSocialPressure(h: GameState['hiddenState']): string[] {
+  const labels: string[] = [];
+  if (h.resentment > 50) labels.push('HIGH internal resentment toward leadership');
+  else if (h.resentment > 25) labels.push('moderate resentment building');
+  if (h.protection > 70) labels.push('troupe feels genuinely protected');
+  if (h.stigmaPressure > 60) labels.push('HIGH stigma — reputation precedes the wagon');
+  else if (h.stigmaPressure > 35) labels.push('moderate stigma pressure — word is spreading');
+  if (h.boundaryStrain > 50) labels.push('HIGH boundary strain — someone is being pushed past their limits');
+  else if (h.boundaryStrain > 25) labels.push('elevated boundary strain');
+  if (h.obedience < 30) labels.push('LOW obedience — leadership is being questioned');
+  if (h.indebtedness > 50) labels.push('HIGH indebtedness — the wagon owes someone');
+  return labels;
+}
+
 function gameStateToUserMessage(gameState: GameState, extra: string): string {
   const party = gameState.party
     .filter((m) => m.isAlive)
@@ -174,15 +188,23 @@ function gameStateToUserMessage(gameState: GameState, extra: string): string {
 
   const recentEvents = gameState.eventHistory.slice(-5);
 
+  const roleAssignmentFlag = gameState.flags.find((f) => f.startsWith('ROLE_ASSIGNMENT:'));
+  const roleAssignment = roleAssignmentFlag
+    ? roleAssignmentFlag.slice('ROLE_ASSIGNMENT:'.length)
+    : undefined;
+
   const summary = {
     day: gameState.day,
     location: gameState.location,
     phase: gameState.phase,
+    route: gameState.route?.type ?? null,
     resources: gameState.resources,
     party,
     playerRelationships,
     recentEvents,
     flags: gameState.flags,
+    socialPressure: buildSocialPressure(gameState.hiddenState),
+    ...(roleAssignment !== undefined ? { roleAssignment } : {}),
   };
 
   return `GAME STATE:\n${JSON.stringify(summary, null, 2)}\n\n${extra}`;

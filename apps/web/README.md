@@ -2,7 +2,38 @@
 
 Next.js 15 browser-first vertical slice. Runs the same game-engine and AI client packages as the mobile app.
 
-## Setup
+## Quick Start — Web Demo (Browser Playtest)
+
+### Requirements
+- Node.js 20+
+- Anthropic API key
+
+### Setup
+```bash
+# From repo root (IMPORTANT: run from repo root, not apps/web)
+npm install --no-package-lock
+
+# Set your API key
+export NEXT_PUBLIC_ANTHROPIC_API_KEY=your_key_here
+# Windows: set NEXT_PUBLIC_ANTHROPIC_API_KEY=your_key_here
+
+# Start the web app
+cd apps/web && npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+### Known Issues
+- **Production build on Windows**: `npm run build` fails with a Windows path casing issue in Next.js 15 prerendering. Use `npm run dev` for local playtest — it works fully. Production build requires running from PowerShell/cmd.exe with canonical Windows paths, not Git Bash — or deploy to Vercel for zero-config production builds.
+- **Mobile app**: Expo/React Native build requires `apps/mobile/node_modules` installed separately (`cd apps/mobile && npx expo install`).
+
+### What to expect
+- Full 7-scene loop: Prologue → Character Introductions → Planning → Trail → Conflict → Campfire → Repeat
+- Route selection (Fort Route, Wilderness Route, Entertainment Circuit) shapes encounters
+- Voice input (Chrome/Edge): hold mic button to speak
+- ~15-20 minutes per run
+
+## Setup (legacy)
 
 ```bash
 cp .env.local.example .env.local

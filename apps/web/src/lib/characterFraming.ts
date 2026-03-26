@@ -7,6 +7,8 @@
  * Update as characters are developed.
  */
 
+import type { Character } from '@whoreagon-trail/characters';
+
 export interface CharacterFrame {
   id: string;
   name: string;
@@ -67,4 +69,20 @@ export const CHARACTER_FRAMES: CharacterFrame[] = [
 
 export function getFrameById(id: string): CharacterFrame | undefined {
   return CHARACTER_FRAMES.find(f => f.id === id);
+}
+
+export function generateFrameFromCharacter(c: Character): CharacterFrame {
+  return {
+    id: c.id,
+    name: c.name,
+    role: c.performanceTrait ?? 'Troupe Member',
+    strength: c.voice ?? 'Steady under pressure',
+    liability: c.hiddenTrait ?? 'Something is being held back',
+    economyNote: c.background ?? 'Part of the troupe since before you arrived',
+    firstImpression: `${c.name}. ${c.conflictResolutionType} by nature.`,
+  };
+}
+
+export function getOrGenerateFrame(c: Character): CharacterFrame {
+  return getFrameById(c.id) ?? generateFrameFromCharacter(c);
 }

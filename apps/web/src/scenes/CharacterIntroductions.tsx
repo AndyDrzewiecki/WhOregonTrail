@@ -4,7 +4,7 @@ import type { GameState, GameAction } from '@whoreagon-trail/game-engine';
 import { streamDialogue } from '@whoreagon-trail/ai-client';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import CommandBar from '@/components/CommandBar';
-import { CHARACTER_FRAMES } from '@/lib/characterFraming';
+import { CHARACTER_FRAMES, getOrGenerateFrame } from '@/lib/characterFraming';
 import styles from './Scene.module.css';
 import cardStyles from './CharacterCards.module.css';
 
@@ -17,15 +17,19 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
   const [inputEnabled, setInputEnabled] = useState(false);
   const [exchanges, setExchanges] = useState(0);
 
+  const frames = state
+    ? state.party.filter((m) => m.isAlive).map((m) => getOrGenerateFrame(m))
+    : CHARACTER_FRAMES;
+
   // Stagger card reveals
   useEffect(() => {
     if (phase !== 'cards') return;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    CHARACTER_FRAMES.forEach((_, i) => {
+    frames.forEach((_, i) => {
       timers.push(setTimeout(() => setVisibleCards(i + 1), i * 450 + 300));
     });
     return () => timers.forEach(clearTimeout);
-  }, [phase]);
+  }, [phase, frames.length]);
 
   // Start AI dialogue once player clicks Continue
   const startDialogue = useCallback(() => {
@@ -103,7 +107,7 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
           <span className={styles.location}>Your Wagon — Who You Are Leading</span>
         </div>
         <div className={cardStyles.cardDeck}>
-          {CHARACTER_FRAMES.map((frame, i) => (
+          {frames.map((frame, i) => (
             <div
               key={frame.id}
               className={`${cardStyles.card} ${i < visibleCards ? cardStyles.visible : ''}`}
@@ -129,7 +133,7 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
               </div>
             </div>
           ))}
-          {visibleCards >= CHARACTER_FRAMES.length && (
+          {visibleCards >= frames.length && (
             <button className={cardStyles.continueBtn} onClick={startDialogue}>
               Address the troupe →
             </button>

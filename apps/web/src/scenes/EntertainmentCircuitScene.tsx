@@ -9,49 +9,44 @@ import styles from './Scene.module.css';
 
 interface Props { state: GameState | null; dispatch: (a: GameAction) => void; }
 
-export default function GatekeeperScene({ state, dispatch }: Props) {
+export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputEnabled, setInputEnabled] = useState(false);
-  const [negotiating, setNegotiating] = useState(false);
+  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
     if (!state || messages.length > 0) return;
 
-    const routeType = state.route?.type ?? 'fort_route';
-    const stigma = state.hiddenState?.stigmaPressure ?? 20;
-
-    const protection = state.hiddenState?.protection ?? 0;
-    const gatekeeperContext = [
-      `__FORT_ENTRY__`,
-      `Route: ${routeType.replace(/_/g, ' ')}.`,
-      stigma > 60
-        ? `Stigma pressure level: HIGH — rumors have preceded the troupe.`
-        : stigma > 35
-          ? `Stigma pressure level: MODERATE — word is traveling.`
-          : `Stigma pressure level: LOW — relatively unknown here.`,
-      `The gatekeeper should reflect this. High stigma means they know exactly what this wagon is and have already decided something about it.`,
-      `Low stigma means they are suspicious but not certain. Give them specific body language and a specific concern.`,
-      state.day > 5 && protection > 60
-        ? `Word of this wagon's reputation for keeping people safe has reached here. The gatekeeper's skepticism is mixed with curiosity.`
+    const { indebtedness, boundaryStrain, obedience } = state.hiddenState;
+    const signal = [
+      `__ENTERTAINMENT_CIRCUIT__: A local promoter approaches. They've heard about the troupe and want a performance. They have money and an audience. They also have expectations. The troupe is watching you negotiate. What you agree to will matter.`,
+      indebtedness > 40
+        ? `The wagon is in debt. Some in the troupe will feel they have no real choice.`
+        : null,
+      boundaryStrain > 40
+        ? `Boundary strain is already elevated. Someone has been pushed. Another push tonight will break something.`
+        : null,
+      obedience < 40
+        ? `Obedience is low. Not everyone will do what you agree to without being asked directly.`
         : null,
     ].filter(Boolean).join(' ');
 
-    const streamingId = 'gate-0';
+    const streamingId = 'ec-0';
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
-    streamDialogue(state, gatekeeperContext, (chunk) => {
+    streamDialogue(state, signal, (chunk) => {
       acc += chunk;
       setMessages([{ id: streamingId, text: acc, isStreaming: true }]);
-    }, 'FORT_GATEKEEPER').then((response) => {
+    }, 'FORT').then((response) => {
       setMessages(response.dialogue.map((d, i) => ({
-        id: `g-${i}`, characterId: d.characterId,
+        id: `ec-${i}`, characterId: d.characterId,
         characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         voiceTag: d.tone,
         text: d.text,
       })));
       setInputEnabled(true);
     }).catch(() => {
-      setMessages([{ id: 'err', text: 'A man built like a grain warehouse blocks the gate. He has the look of someone who has said no to a lot of people and enjoyed every time. He looks at Delphine. Then at you. Then back at Delphine.', isStreaming: false }]);
+      setMessages([{ id: 'err', text: `The promoter has a smile that's been worn on too many faces before yours. The troupe is quiet. Everyone is waiting to see what kind of captain you are.`, isStreaming: false }]);
       setInputEnabled(true);
     });
   }, [state]);
@@ -62,13 +57,15 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
     const streamingId = `s-${Date.now()}`;
     setMessages(prev => [...prev, playerMsg, { id: streamingId, text: '', isStreaming: true }]);
     setInputEnabled(false);
-    setNegotiating(true);
+    setResolved(true);
+
     const response = await resolveEvent(
       state,
-      { type: 'fort_arrival', description: `Arriving at ${getLocationDisplayName(state.location)}` },
+      { type: 'performance_opportunity', description: `Performance negotiation at ${getLocationDisplayName(state.location)}` },
       text,
-      'FORT_GATEKEEPER'
+      'FORT'
     );
+
     const newMsgs: DisplayMessage[] = response.dialogue.map((d, i) => ({
       id: `r-${Date.now()}-${i}`,
       characterId: d.characterId,
@@ -77,6 +74,7 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
       text: d.text,
     }));
     setMessages(prev => [...prev.filter(m => m.id !== streamingId), ...newMsgs]);
+
     const outcome: EventOutcome = {
       resourceChanges: response.eventOutcome.resourceChanges,
       healthChanges: response.eventOutcome.healthChanges,
@@ -86,28 +84,29 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
     dispatch({ type: 'APPLY_EVENT_OUTCOME', outcome });
 
     const result = response.eventOutcome.result;
-    if (result === 'failure') {
-      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { stigmaPressure: 10, resentment: 5 } });
+    if (result === 'success') {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { protection: 5, indebtedness: -10, resentment: -5 } });
+    } else if (result === 'partial_success') {
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { boundaryStrain: 10, indebtedness: -5 } });
     } else {
-      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { stigmaPressure: -5, protection: 5 } });
+      dispatch({ type: 'APPLY_HIDDEN_DELTA', delta: { resentment: 15, boundaryStrain: 15, stigmaPressure: 5 } });
     }
 
-    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2500);
-    setInputEnabled(false);
+    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2000);
   }, [state, dispatch]);
 
   return (
     <div className={styles.scene}>
       <div className={styles.header}>
         <span className={styles.location}>
-          {state ? getLocationDisplayName(state.location) : 'Fort'} — Gate
+          {state ? getLocationDisplayName(state.location) : 'Fort'} — Entertainment Circuit
         </span>
-        <span style={{ fontSize: '0.65rem', color: negotiating ? 'var(--gold)' : 'var(--error)', letterSpacing: '0.1em' }}>
-          {negotiating ? 'ENTRY GRANTED' : 'ENTRY DENIED'}
+        <span style={{ fontSize: '0.65rem', color: resolved ? 'var(--gold)' : 'var(--muted)', letterSpacing: '0.1em' }}>
+          {resolved ? 'NEGOTIATED' : 'PERFORMANCE NEGOTIATION'}
         </span>
       </div>
       <DialogueStream messages={messages} />
-      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Pick your words carefully." />
+      <CommandBar onSubmit={handleSubmit} disabled={!inputEnabled} placeholder="Your terms. Or theirs." />
     </div>
   );
 }

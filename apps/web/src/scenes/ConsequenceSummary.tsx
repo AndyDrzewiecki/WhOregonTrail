@@ -45,8 +45,12 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
     setMessages([{ id: streamingId, text: '', isStreaming: true }]);
     let acc = '';
     const recentSummary = state.eventHistory.slice(-3).map(e => e.description).join('; ');
+    const routeNote = state.route?.type ? `Route: ${state.route.type}.` : '';
+    const dayNote = (state.day ?? 1) >= 5 ? `Day ${state.day} on the trail — the novelty has worn off.` : '';
     const campfireSignal = [
       `__CAMPFIRE_START__: Reflect on today. Recent events: ${recentSummary}. Characters should react to SPECIFIC things that happened, not generic trail hardship. If someone died today, someone is grieving. If a conflict went unresolved, someone is still angry. Campfire is where the real feelings come out.`,
+      routeNote,
+      dayNote,
       leadershipContext,
     ].filter(Boolean).join(' ');
 
@@ -102,10 +106,46 @@ export default function ConsequenceSummary({ state, dispatch }: Props) {
     const r = hiddenSnap?.resentment ?? 20;
     const p = hiddenSnap?.protection ?? 50;
     const b = hiddenSnap?.boundaryStrain ?? 0;
-    if (r > 60) return 'The wagon is still moving. Whether people are with you is a different question.';
-    if (p > 70 && b < 30) return 'Tonight, at least, people feel like they are not alone. That is something.';
-    if (b > 55) return 'You have been pushing. Some of them know the difference between leadership and extraction.';
-    return 'Day done. Nobody died. The fire goes out.';
+    const s = hiddenSnap?.stigmaPressure ?? 20;
+    const o = hiddenSnap?.obedience ?? 60;
+    const d = hiddenSnap?.indebtedness ?? 0;
+    const route = state?.route?.type ?? null;
+
+    // High resentment: wagon is fracturing
+    if (r > 65) {
+      return route === 'entertainment_circuit'
+        ? 'The circuit pays. The cost is not in money. A few more nights like this and you will not recognize who is still standing next to you.'
+        : 'The wagon is still moving. Not everyone inside it believes in where it is going anymore. That is a different thing than a broken axle but it breaks just the same.';
+    }
+
+    // High protection + low boundary strain: genuine care is showing
+    if (p > 70 && b < 30) {
+      return route === 'wilderness_route'
+        ? 'Out here, no judges. No gatekeepers. Just your people and what you have built. Tonight, it feels like something real. Tomorrow that will be tested again.'
+        : 'There is warmth around this fire that did not have to be here. You earned it by making choices that cost you something. That is not nothing.';
+    }
+
+    // High boundary strain: extraction dynamics surfacing
+    if (b > 55) {
+      return d > 40
+        ? 'The debt is real. The strain is real. Some in this wagon know the difference between a captain who leads and one who borrows against people who cannot say no. The question is whether you do.'
+        : 'You have been pushing. Someone has been bending to make it work. Bending is not the same as breaking, but it is the direction.';
+    }
+
+    // Low obedience: authority is slipping
+    if (o < 35) {
+      return 'Not everyone is following anymore. Not overtly — but you can see it in the small things. What that becomes next depends entirely on what you do tomorrow.';
+    }
+
+    // High stigma: reputation preceding the wagon
+    if (s > 60) {
+      return route === 'fort_route'
+        ? 'They know who you are before you arrive. That is going to keep being true. The only question is whether you use it or fight it.'
+        : 'Stigma is high. On the wilderness route, that mostly means whispers between your own people. That is its own problem.';
+    }
+
+    // Default: survival, day done
+    return 'Day done. Nobody died. The fire goes out. That is the full story of a good day on this trail, and that is enough.';
   })();
 
   return (
