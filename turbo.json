@@ -20,6 +20,10 @@
     },
     "lint": {
       "outputs": []
+    },
+    "test": {
+      "dependsOn": [],
+      "outputs": []
     }
   }
 }
