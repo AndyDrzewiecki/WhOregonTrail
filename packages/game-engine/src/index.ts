@@ -55,3 +55,16 @@ export {
 
 export type { StorageAdapter } from './storage';
 export { localStorageAdapter } from './storage';
+
+export type { SlotId, SaveSlotMeta } from './saveSlots';
+export {
+  SLOT_COUNT,
+  ACTIVE_SLOT_KEY,
+  listSaveSlots,
+  saveToSlot,
+  loadSlot,
+  deleteSlot,
+  getActiveSlot,
+  setActiveSlot,
+  clearActiveSlot,
+} from './saveSlots';

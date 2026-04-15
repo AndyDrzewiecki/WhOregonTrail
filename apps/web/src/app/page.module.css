@@ -6,6 +6,7 @@
   justify-content: center;
   background: radial-gradient(ellipse at 50% 120%, var(--scene-glow) 0%, var(--bg) 60%);
   overflow: hidden;
+  overflow-y: auto;
 }
 
 .dust { position: absolute; inset: 0; pointer-events: none; }
@@ -26,10 +27,13 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  padding: 40px clamp(16px, 6vw, 48px);
+  width: 100%;
+  max-width: 680px;
 }
 
 .title {
-  font-size: clamp(2rem, 6vw, 4rem);
+  font-size: clamp(1.8rem, 6vw, 4rem);
   letter-spacing: 0.3em;
   color: var(--gold);
   font-weight: normal;
@@ -88,4 +92,149 @@
   inset: 0;
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+}
+
+/* ── Save slots ─────────────────────────────────────────────────────────────── */
+
+.slotsSection {
+  width: 100%;
+  margin-top: 28px;
+}
+
+.slotsHeading {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.slotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.slotCard {
+  background: var(--dark-card);
+  border: 1px solid var(--gold-dim);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  animation: fade-in 300ms ease forwards;
+}
+
+.slotCard.slotEmpty {
+  border-style: dashed;
+  opacity: 0.7;
+  align-items: center;
+  text-align: center;
+}
+
+.slotLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.slotEmpty_text {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.slotHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.slotDate {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.slotMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.slotDay { color: var(--cream); }
+.slotLocation { color: var(--cream); }
+.slotRoute { color: var(--gold-dim); }
+.slotDot { opacity: 0.5; }
+
+.slotParty {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slotActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.slotBtn {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--gold-dim);
+  color: var(--cream);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms;
+  letter-spacing: 0.04em;
+}
+
+.slotBtn:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.slotBtnDanger {
+  color: var(--muted);
+  border-color: transparent;
+  font-size: 0.75rem;
+}
+
+.slotBtnDanger:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* ── Mobile adjustments ──────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .slotsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .slotCard {
+    padding: 12px 14px;
+  }
+
+  .center {
+    padding: 32px 16px;
+  }
 }

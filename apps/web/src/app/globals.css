@@ -58,3 +58,38 @@ html, body {
 
 .scene-enter { animation: scene-enter var(--transition-scene) ease forwards; }
 .fade-in { animation: fade-in 400ms ease forwards; }
+
+/* ── Mobile baseline ──────────────────────────────────────────────────────── */
+
+/* Prevent tap highlight on interactive elements */
+button, a { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent text-size-adjust on iOS after orientation change */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* Smooth momentum scrolling on iOS */
+.scroll-container { -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 600px) {
+  html { font-size: 15px; }
+
+  /* More breathing room for the fixed command bar on small screens */
+  :root { --command-bar-offset: 80px; }
+}
+
+@media (max-width: 400px) {
+  html { font-size: 14px; }
+}
+
+/* ── Tablet (portrait iPad) ──────────────────────────────────────────────── */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  html { font-size: 16px; }
+}
+
+/* ── Landscape phone ──────────────────────────────────────────────────────── */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Compact scene header when keyboard + landscape squeezes height */
+  html { font-size: 13px; }
+}

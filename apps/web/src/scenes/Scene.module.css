@@ -193,3 +193,68 @@
 }
 
 .yieldBtn.visible { opacity: 1; }
+
+/* ── Mobile responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .header {
+    padding: 8px 16px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .resources {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .planningPanel {
+    padding: 70px 0 140px;
+  }
+
+  .eventCard {
+    padding: 14px;
+  }
+
+  .advanceBtn {
+    font-size: 0.9rem;
+  }
+
+  .choiceBtn {
+    font-size: 0.88rem;
+    padding: 10px 12px;
+    /* Bigger touch target on mobile */
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .minigameOverlay {
+    gap: 16px;
+  }
+
+  .targetZone {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+@media (max-width: 400px) {
+  .resources {
+    gap: 8px;
+    font-size: 0.62rem;
+  }
+}
+
+/* ── Landscape phone ──────────────────────────────────────────────────────── */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .header {
+    padding: 6px clamp(12px, 4vw, 32px);
+  }
+
+  .planningPanel {
+    padding: 60px 0 120px;
+    gap: 16px;
+  }
+}

@@ -4,6 +4,10 @@
 
 let audioCtx: AudioContext | null = null;
 let currentNodes: AudioNode[] = [];
+let masterGain: GainNode | null = null;
+
+const VOLUME_KEY = 'wt_volume';
+const DEFAULT_VOLUME = 0.7;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -15,6 +19,33 @@ function getAudioContext(): AudioContext | null {
     }
   }
   return audioCtx;
+}
+
+function getMasterGain(ctx: AudioContext): GainNode {
+  if (!masterGain) {
+    masterGain = ctx.createGain();
+    masterGain.gain.value = getVolume();
+    masterGain.connect(ctx.destination);
+  }
+  return masterGain;
+}
+
+export function getVolume(): number {
+  if (typeof window === 'undefined') return DEFAULT_VOLUME;
+  const stored = localStorage.getItem(VOLUME_KEY);
+  if (stored === null) return DEFAULT_VOLUME;
+  const v = parseFloat(stored);
+  return isNaN(v) ? DEFAULT_VOLUME : Math.max(0, Math.min(1, v));
+}
+
+export function setVolume(volume: number): void {
+  const clamped = Math.max(0, Math.min(1, volume));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(VOLUME_KEY, String(clamped));
+  }
+  if (masterGain) {
+    masterGain.gain.setTargetAtTime(clamped, masterGain.context.currentTime, 0.05);
+  }
 }
 
 export function stopAtmosphere(): void {
@@ -81,13 +112,14 @@ function getAtmosphereType(routeType: string | null, scene: string): AtmosphereT
 }
 
 function createAtmosphere(ctx: AudioContext, type: AtmosphereType): void {
+  const out = getMasterGain(ctx);
   switch (type) {
-    case 'wagon_trail':      return createWagonTrail(ctx);
-    case 'wilderness':       return createWilderness(ctx);
-    case 'fort_gates':       return createFortGates(ctx);
-    case 'campfire':         return createCampfire(ctx);
-    case 'performance_venue': return createPerformanceVenue(ctx);
-    case 'tension':          return createTension(ctx);
+    case 'wagon_trail':      return createWagonTrail(ctx, out);
+    case 'wilderness':       return createWilderness(ctx, out);
+    case 'fort_gates':       return createFortGates(ctx, out);
+    case 'campfire':         return createCampfire(ctx, out);
+    case 'performance_venue': return createPerformanceVenue(ctx, out);
+    case 'tension':          return createTension(ctx, out);
   }
 }
 
@@ -103,7 +135,7 @@ function createNoiseBuffer(ctx: AudioContext, seconds = 2): AudioBuffer {
 
 // --- Atmosphere creators ---
 
-function createWagonTrail(ctx: AudioContext): void {
+function createWagonTrail(ctx: AudioContext, out: AudioNode): void {
   try {
     const source = ctx.createBufferSource();
     source.buffer = createNoiseBuffer(ctx, 2);
@@ -118,7 +150,7 @@ function createWagonTrail(ctx: AudioContext): void {
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(out);
 
     source.start();
 
@@ -126,7 +158,7 @@ function createWagonTrail(ctx: AudioContext): void {
   } catch {}
 }
 
-function createWilderness(ctx: AudioContext): void {
+function createWilderness(ctx: AudioContext, out: AudioNode): void {
   try {
     const source = ctx.createBufferSource();
     source.buffer = createNoiseBuffer(ctx, 2);
@@ -142,7 +174,7 @@ function createWilderness(ctx: AudioContext): void {
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(out);
 
     source.start();
 
@@ -154,14 +186,14 @@ function createWilderness(ctx: AudioContext): void {
     oscGain.gain.value = 0.01;
 
     osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
+    oscGain.connect(out);
     osc.start();
 
     currentNodes.push(source, filter, gain, osc, oscGain);
   } catch {}
 }
 
-function createFortGates(ctx: AudioContext): void {
+function createFortGates(ctx: AudioContext, out: AudioNode): void {
   try {
     const drone = ctx.createOscillator();
     drone.type = 'sine';
@@ -171,7 +203,7 @@ function createFortGates(ctx: AudioContext): void {
     droneGain.gain.value = 0.02;
 
     drone.connect(droneGain);
-    droneGain.connect(ctx.destination);
+    droneGain.connect(out);
     drone.start();
 
     const noiseSource = ctx.createBufferSource();
@@ -187,14 +219,14 @@ function createFortGates(ctx: AudioContext): void {
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
+    noiseGain.connect(out);
     noiseSource.start();
 
     currentNodes.push(drone, droneGain, noiseSource, noiseFilter, noiseGain);
   } catch {}
 }
 
-function createCampfire(ctx: AudioContext): void {
+function createCampfire(ctx: AudioContext, out: AudioNode): void {
   try {
     const source = ctx.createBufferSource();
     source.buffer = createNoiseBuffer(ctx, 2);
@@ -210,7 +242,7 @@ function createCampfire(ctx: AudioContext): void {
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(out);
 
     source.start();
 
@@ -218,7 +250,7 @@ function createCampfire(ctx: AudioContext): void {
   } catch {}
 }
 
-function createPerformanceVenue(ctx: AudioContext): void {
+function createPerformanceVenue(ctx: AudioContext, out: AudioNode): void {
   try {
     const osc1 = ctx.createOscillator();
     osc1.type = 'sine';
@@ -251,8 +283,8 @@ function createPerformanceVenue(ctx: AudioContext): void {
     merger.connect(delay);
     delay.connect(feedback);
     feedback.connect(delay);
-    merger.connect(ctx.destination);
-    delay.connect(ctx.destination);
+    merger.connect(out);
+    delay.connect(out);
 
     osc1.start();
     osc2.start();
@@ -261,7 +293,7 @@ function createPerformanceVenue(ctx: AudioContext): void {
   } catch {}
 }
 
-function createTension(ctx: AudioContext): void {
+function createTension(ctx: AudioContext, out: AudioNode): void {
   try {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -281,7 +313,7 @@ function createTension(ctx: AudioContext): void {
     lfo.connect(lfoGain);
     lfoGain.connect(gain.gain);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(out);
 
     osc.start();
     lfo.start();
