@@ -135,7 +135,10 @@ export default function MinigameInterruption({ state, dispatch }: Props) {
       const money = finalTier === 'SUCCESS' ? 60 : finalTier === 'PARTIAL' ? 30 : 0;
       if (money > 0) dispatch({ type: 'UPDATE_RESOURCES', changes: { money } });
     }
-    dispatch({ type: 'SET_PHASE', phase: 'TRAIL' });
+    // Mark event resolved so the scene router won't re-enter this scene;
+    // send to campfire — the minigame result is worth reflecting on.
+    dispatch({ type: 'SET_FLAG', flag: 'EVENT_RESOLVED' });
+    dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' });
   }, [dispatch, isHunting]);
 
   // Difficulty label

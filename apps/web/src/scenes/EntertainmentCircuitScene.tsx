@@ -174,7 +174,13 @@ export default function EntertainmentCircuitScene({ state, dispatch }: Props) {
       });
     }
 
-    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2000);
+    // On success/partial: earned money means there's something to spend at the local post.
+    // On failure: walk away empty — straight to campfire.
+    if (result !== 'failure') {
+      setTimeout(() => dispatch({ type: 'SET_FLAG', flag: 'FORT_SHOP_READY' }), 2000);
+    } else {
+      setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2000);
+    }
   }, [state, dispatch]);
 
   return (
