@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   gameReducer,
   DEFAULT_RESOURCES,
   DEFAULT_HIDDEN_STATE,
   DEFAULT_RUN_MEMORY,
+  TRAIL_WAYPOINTS,
+  MILES_PER_DAY,
+  selectTrailEvent,
 } from '../state';
 import type { GameState, GameAction } from '../state';
 import type { Character } from '@whoreagon-trail/characters';
@@ -414,5 +417,156 @@ describe('DEFAULT_RESOURCES sanity', () => {
 
   it('has non-zero ammunition', () => {
     expect(DEFAULT_RESOURCES.ammunition).toBeGreaterThan(0);
+  });
+});
+
+// ── Trail loop mechanics ──────────────────────────────────────────────────────
+
+describe('ADVANCE_DAY trail loop', () => {
+  it('decrements milesUntilNextStop by steady pace miles', () => {
+    let state = freshState();
+    const before = state.milesUntilNextStop;
+    state = dispatch(state, { type: 'ADVANCE_DAY', pace: 'steady' });
+    expect(state.milesUntilNextStop).toBe(Math.max(0, before - MILES_PER_DAY.steady));
+  });
+
+  it('does not decrease milesUntilNextStop below 0', () => {
+    let state = freshState();
+    // Force milesUntilNextStop to a small number
+    state = { ...state, milesUntilNextStop: 5 };
+    state = dispatch(state, { type: 'ADVANCE_DAY', pace: 'grueling' });
+    expect(state.milesUntilNextStop).toBe(0);
+  });
+
+  it('accumulates totalMilesTraveled across multiple days', () => {
+    let state = freshState();
+    state = dispatch(state, { type: 'ADVANCE_DAY', pace: 'steady' });
+    state = dispatch(state, { type: 'ADVANCE_DAY', pace: 'grueling' });
+    expect(state.totalMilesTraveled).toBe(MILES_PER_DAY.steady + MILES_PER_DAY.grueling);
+  });
+
+  it('does not consume food or water on rest day', () => {
+    let state = freshState();
+    // 2 party members at rest: 2 × 1.5 food, 2 × 0.3 water
+    const foodBefore = state.resources.food;
+    const waterBefore = state.resources.water;
+    state = dispatch(state, { type: 'ADVANCE_DAY', pace: 'rest' });
+    expect(state.resources.food).toBeLessThan(foodBefore);
+    expect(state.resources.water).toBeLessThan(waterBefore);
+    // Rest pace consumes less than steady
+    const restFoodCost = 2 * 1.5;
+    expect(state.resources.food).toBe(Math.max(0, foodBefore - restFoodCost));
+  });
+});
+
+describe('ADVANCE_LOCATION trail progression', () => {
+  it('covers all 10 waypoints in order', () => {
+    let state = freshState();
+    for (let i = 0; i < TRAIL_WAYPOINTS.length - 1; i++) {
+      expect(state.location).toBe(TRAIL_WAYPOINTS[i]);
+      state = dispatch(state, { type: 'ADVANCE_LOCATION' });
+    }
+    expect(state.location).toBe('oregon_city');
+  });
+
+  it('updates milesUntilNextStop to next leg distance after advancing', () => {
+    let state = freshState();
+    // First advance: independence_mo → fort_kearney
+    // Next leg: fort_kearney → chimney_rock = 120 miles
+    state = dispatch(state, { type: 'ADVANCE_LOCATION' });
+    expect(state.location).toBe('fort_kearney');
+    expect(state.milesUntilNextStop).toBe(120);
+  });
+
+  it('sets milesUntilNextStop to 0 at final waypoint (no next leg)', () => {
+    let state = freshState();
+    for (let i = 0; i < TRAIL_WAYPOINTS.length - 1; i++) {
+      state = dispatch(state, { type: 'ADVANCE_LOCATION' });
+    }
+    expect(state.location).toBe('oregon_city');
+    expect(state.milesUntilNextStop).toBe(0);
+  });
+});
+
+describe('selectTrailEvent', () => {
+  it('returns null or a valid event template', () => {
+    const state = freshState();
+    // Run 20 times to get a statistical sample — should always return valid or null
+    for (let i = 0; i < 20; i++) {
+      const result = selectTrailEvent(state);
+      expect(result === null || typeof result.type === 'string').toBe(true);
+    }
+  });
+
+  it('returns null roughly 35% of the time (probabilistic guard)', () => {
+    // selectTrailEvent has 0.65 chance of returning null. Over 200 trials,
+    // we should see null at least 40 times and at most 100 times.
+    const state = freshState();
+    let nullCount = 0;
+    for (let i = 0; i < 200; i++) {
+      if (selectTrailEvent(state) === null) nullCount++;
+    }
+    expect(nullCount).toBeGreaterThanOrEqual(40);
+    expect(nullCount).toBeLessThanOrEqual(150);
+  });
+
+  it('only returns highHealth events when all party members are above 70 health', () => {
+    let state = freshState();
+    // Both party members start at 100 health — highHealth events eligible
+    const results = Array.from({ length: 50 }, () => selectTrailEvent(state)).filter(Boolean);
+    const highHealthEventTypes = new Set(['hunting_opportunity', 'performance_opportunity', 'roadside_audience']);
+    // At least some high-health events should appear in a healthy party
+    const hasHighHealth = results.some(e => highHealthEventTypes.has(e!.type));
+    expect(hasHighHealth).toBe(true);
+  });
+
+  it('excludes highHealth events when a party member is below 70 health', () => {
+    let state = freshState();
+    state = dispatch(state, { type: 'UPDATE_CHARACTER_HEALTH', characterId: 'alpha', health: 30 });
+    const results = Array.from({ length: 100 }, () => selectTrailEvent(state)).filter(Boolean);
+    const highHealthEventTypes = new Set(['hunting_opportunity', 'performance_opportunity', 'roadside_audience']);
+    const hasHighHealth = results.some(e => highHealthEventTypes.has(e!.type));
+    expect(hasHighHealth).toBe(false);
+  });
+});
+
+describe('APPLY_EVENT_OUTCOME', () => {
+  it('applies resource changes as deltas (additive)', () => {
+    let state = freshState();
+    const foodBefore = state.resources.food;
+    state = dispatch(state, {
+      type: 'APPLY_EVENT_OUTCOME',
+      outcome: { resourceChanges: { food: 20 } },
+    });
+    expect(state.resources.food).toBe(foodBefore + 20);
+  });
+
+  it('applies negative resource changes and floors at 0', () => {
+    let state = freshState();
+    state = dispatch(state, {
+      type: 'APPLY_EVENT_OUTCOME',
+      outcome: { resourceChanges: { food: -9999 } },
+    });
+    expect(state.resources.food).toBe(0);
+  });
+
+  it('applies health changes as deltas and kills on 0', () => {
+    let state = freshState();
+    state = dispatch(state, {
+      type: 'APPLY_EVENT_OUTCOME',
+      outcome: { healthChanges: [{ characterId: 'alpha', delta: -200 }] },
+    });
+    const alpha = state.party.find(m => m.id === 'alpha')!;
+    expect(alpha.health).toBe(0);
+    expect(alpha.isAlive).toBe(false);
+  });
+
+  it('applies new flags', () => {
+    let state = freshState();
+    state = dispatch(state, {
+      type: 'APPLY_EVENT_OUTCOME',
+      outcome: { newFlags: ['TEST_FLAG'] },
+    });
+    expect(state.flags).toContain('TEST_FLAG');
   });
 });

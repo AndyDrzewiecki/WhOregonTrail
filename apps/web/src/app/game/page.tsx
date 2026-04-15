@@ -11,6 +11,7 @@ import CoachingScene from '@/scenes/CoachingScene';
 import EntertainmentCircuitScene from '@/scenes/EntertainmentCircuitScene';
 import MinigameInterruption from '@/scenes/MinigameInterruption';
 import DelegationScene from '@/scenes/DelegationScene';
+import FortSupplyScene from '@/scenes/FortSupplyScene';
 import ConsequenceSummary from '@/scenes/ConsequenceSummary';
 import SceneTransition from '@/components/SceneTransition';
 import SceneBridge from '@/components/SceneBridge';
@@ -53,6 +54,7 @@ export default function GamePage() {
       case 'PLANNING':              return <PlanningMode state={state} dispatch={dispatch} />;
       case 'COACHING':              return <CoachingScene state={state} dispatch={dispatch} />;
       case 'DELEGATION':            return <DelegationScene state={state} dispatch={dispatch} />;
+      case 'FORT_SUPPLY':           return <FortSupplyScene state={state} dispatch={dispatch} />;
       case 'GATEKEEPER':            return <GatekeeperScene state={state} dispatch={dispatch} />;
       case 'ENTERTAINMENT_CIRCUIT': return <EntertainmentCircuitScene state={state} dispatch={dispatch} />;
       case 'MINIGAME':              return <MinigameInterruption state={state} dispatch={dispatch} />;

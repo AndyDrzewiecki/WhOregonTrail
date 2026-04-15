@@ -184,7 +184,10 @@ export default function ConflictScene({ state, dispatch }: Props) {
       } as MemoryEvent,
     });
 
-    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2000);
+    // Mark event resolved so the scene router doesn't re-enter this scene;
+    // then send to campfire — the player has earned a rest.
+    dispatch({ type: 'SET_FLAG', flag: 'EVENT_RESOLVED' });
+    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2000);
     setInputEnabled(false);
   }, [state, dispatch]);
 

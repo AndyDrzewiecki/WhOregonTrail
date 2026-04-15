@@ -14,6 +14,7 @@ export type SceneName =
   | 'DELEGATION'
   | 'GATEKEEPER'
   | 'ENTERTAINMENT_CIRCUIT'
+  | 'FORT_SUPPLY'
   | 'MINIGAME'
   | 'SUMMARY';
 
@@ -62,6 +63,8 @@ export function useSceneRouter(state: GameState | null): SceneName {
   ) {
     return 'DELEGATION';
   }
+  // After the gatekeeper/performance is passed, show the fort supply shop
+  if (state.phase === 'FORT' && state.flags.includes('FORT_SHOP_READY')) return 'FORT_SUPPLY';
   // Entertainment circuit performance negotiation takes priority over standard gate entry
   if (state.phase === 'FORT' && state.route?.type === 'entertainment_circuit') return 'ENTERTAINMENT_CIRCUIT';
   if (state.phase === 'FORT') return 'GATEKEEPER';
@@ -72,7 +75,11 @@ export function useSceneRouter(state: GameState | null): SceneName {
     // Only route to event-based scenes for events from today (same day)
     const isTodaysEvent = lastEvent?.day === state.day;
 
-    if (isTodaysEvent && lastEvent) {
+    // Only route to an event scene if the event hasn't been resolved yet.
+    // EVENT_RESOLVED is set by ConflictScene/MinigameInterruption after the player resolves
+    // the encounter, and cleared at the start of the next day's ADVANCE_DAY.
+    const eventResolved = state.flags.includes('EVENT_RESOLVED');
+    if (isTodaysEvent && lastEvent && !eventResolved) {
       if (MINIGAME_EVENT_TYPES.has(lastEvent.type)) return 'MINIGAME';
       // Conflict scene always fires for conflict events; day % 3 can be used inside
       // ConflictScene itself to vary tone/framing (0=survival, 1=interpersonal, 2=moral).

@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { GameState, GameAction, RouteProfile, MemoryEvent } from '@whoreagon-trail/game-engine';
-import { getLocationDisplayName } from '@whoreagon-trail/game-engine';
+import { getLocationDisplayName, selectTrailEvent, TRAIL_WAYPOINTS } from '@whoreagon-trail/game-engine';
 import styles from './Scene.module.css';
 
 interface Props { state: GameState | null; dispatch: (a: GameAction) => void; }
@@ -51,6 +51,59 @@ export default function PlanningMode({ state, dispatch }: Props) {
   const [pace, setPace] = useState<Pace>('steady');
   const [stage, setStage] = useState<Stage>('pace');
   const [roleText, setRoleText] = useState('');
+
+  // Track which day we last processed post-advance routing for, to prevent double-firing.
+  const advancedDayRef = useRef<number>(-1);
+
+  // Post-ADVANCE_DAY routing: fires after state updates with the new day.
+  // Determines whether we arrived at a fort/finale, triggered a trail event, or go to campfire.
+  useEffect(() => {
+    if (stage !== 'advancing' || !state) return;
+    // Guard: only fire once per day advance
+    if (advancedDayRef.current === state.day) return;
+    advancedDayRef.current = state.day;
+
+    // Clear any stale event-resolved flag from the previous day
+    dispatch({ type: 'REMOVE_FLAG', flag: 'EVENT_RESOLVED' });
+
+    // 1. Check for fort/waypoint arrival (milesUntilNextStop reached 0 from travel)
+    if (state.milesUntilNextStop === 0) {
+      const currentIndex = TRAIL_WAYPOINTS.indexOf(state.location);
+      const nextLocation = TRAIL_WAYPOINTS[currentIndex + 1];
+      if (!nextLocation) {
+        // Already at Oregon City — trigger finale
+        dispatch({ type: 'SET_PHASE', phase: 'FINALE' });
+      } else {
+        dispatch({ type: 'ADVANCE_LOCATION' });
+        if (nextLocation === 'oregon_city') {
+          dispatch({ type: 'SET_PHASE', phase: 'FINALE' });
+        } else {
+          dispatch({ type: 'SET_PHASE', phase: 'FORT' });
+        }
+      }
+      return;
+    }
+
+    // 2. Roll for a trail event
+    const event = selectTrailEvent(state);
+    if (event) {
+      dispatch({
+        type: 'ADD_EVENT',
+        entry: {
+          day: state.day,
+          type: event.type,
+          description: event.description,
+          involvedCharacterIds: [],
+          location: state.location,
+        },
+      });
+      // Phase stays TRAIL; scene router picks up the new event and routes to CONFLICT/MINIGAME
+      return;
+    }
+
+    // 3. No event today — go straight to campfire
+    dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' });
+  }, [state?.day, stage, dispatch]);
 
   if (!state) return null;
 

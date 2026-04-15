@@ -152,7 +152,13 @@ export default function GatekeeperScene({ state, dispatch }: Props) {
       } as MemoryEvent,
     });
 
-    setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 2500);
+    // On success/partial: open the fort supply shop before moving on.
+    // On failure: they were turned away — no access, go straight to campfire.
+    if (result !== 'failure') {
+      setTimeout(() => dispatch({ type: 'SET_FLAG', flag: 'FORT_SHOP_READY' }), 2500);
+    } else {
+      setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'CAMPFIRE' }), 2500);
+    }
     setInputEnabled(false);
   }, [state, dispatch]);
 
