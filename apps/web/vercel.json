@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@whoreagon-trail/web",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_ANTHROPIC_API_KEY": "@anthropic-api-key"
+  }
+}

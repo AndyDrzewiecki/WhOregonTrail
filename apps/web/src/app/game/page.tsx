@@ -1,6 +1,7 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useWebGameState } from '@/hooks/useWebGameState';
+import { useAutoSaveToSlot } from '@/hooks/useSaveSlots';
 import WagonOpener from '@/scenes/WagonOpener';
 import CharacterIntroductions from '@/scenes/CharacterIntroductions';
 import SupplyShop from '@/scenes/SupplyShop';
@@ -23,12 +24,27 @@ import { playAtmosphere } from '@/lib/audioAtmosphere';
 export default function GamePage() {
   const { state, dispatch, isReady } = useWebGameState();
   const scene = useSceneRouter(state);
+  const { saveNow } = useAutoSaveToSlot(state);
+  const [saveFlash, setSaveFlash] = useState(false);
 
+  // Play atmosphere when scene or route changes
   useEffect(() => {
     if (isReady && state) {
       playAtmosphere(state.route?.type ?? null, scene);
     }
   }, [scene, isReady]);
+
+  // Auto-save to active slot when state changes (debounced via phase changes)
+  useEffect(() => {
+    if (!isReady || !state) return;
+    saveNow();
+  }, [state?.phase, state?.day, state?.location, isReady]);
+
+  const handleManualSave = useCallback(async () => {
+    await saveNow();
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1500);
+  }, [saveNow]);
 
   if (!isReady) {
     return (
@@ -71,6 +87,33 @@ export default function GamePage() {
       </SceneTransition>
       <DebugHUD state={state} scene={scene} />
       <AudioToggle scene={scene} routeType={state?.route?.type ?? null} />
+
+      {/* Save Game button — only when there's an active run */}
+      {state && state.runId && state.phase !== 'END' && (
+        <button
+          onClick={handleManualSave}
+          aria-label="Save game to slot"
+          style={{
+            position: 'fixed',
+            bottom: '16px',
+            right: '16px',
+            background: 'transparent',
+            border: '1px solid var(--muted)',
+            color: saveFlash ? 'var(--gold)' : 'var(--muted)',
+            borderColor: saveFlash ? 'var(--gold)' : 'var(--muted)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.65rem',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            opacity: saveFlash ? 0.9 : 0.5,
+            zIndex: 100,
+            transition: 'color 300ms, border-color 300ms, opacity 300ms',
+            letterSpacing: '0.05em',
+          }}
+        >
+          {saveFlash ? '✓ saved' : '↓ save'}
+        </button>
+      )}
     </>
   );
 }

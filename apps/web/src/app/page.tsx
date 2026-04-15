@@ -1,32 +1,106 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useSaveSlots, type SlotInfo } from '@/hooks/useSaveSlots';
+import type { SlotId } from '@whoreagon-trail/game-engine';
 import styles from './page.module.css';
 
-function hasSavedRun(): boolean {
-  try {
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('game:currentRun') : null;
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    // Must have a runId and not be in END phase
-    return Boolean(parsed?.runId) && parsed?.phase !== 'END';
-  } catch {
-    return false;
+function formatSavedAt(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function routeLabel(rt: string | null): string {
+  if (!rt) return '';
+  const map: Record<string, string> = {
+    fort_route: 'Fort Road',
+    wilderness_route: 'Wilderness',
+    entertainment_circuit: 'The Circuit',
+  };
+  return map[rt] ?? rt;
+}
+
+function SlotCard({
+  slotId,
+  info,
+  onLoad,
+  onNew,
+  onDelete,
+}: {
+  slotId: SlotId;
+  info: SlotInfo;
+  onLoad: (id: SlotId) => void;
+  onNew: (id: SlotId) => void;
+  onDelete: (id: SlotId) => void;
+}) {
+  const label = `Slot ${slotId + 1}`;
+
+  if (!info) {
+    return (
+      <div className={styles.slotCard + ' ' + styles.slotEmpty}>
+        <span className={styles.slotLabel}>{label}</span>
+        <span className={styles.slotEmpty_text}>— empty —</span>
+        <button className={styles.slotBtn} onClick={() => onNew(slotId)}>
+          New Game
+        </button>
+      </div>
+    );
   }
+
+  return (
+    <div className={styles.slotCard}>
+      <div className={styles.slotHeader}>
+        <span className={styles.slotLabel}>{label}</span>
+        <span className={styles.slotDate}>{formatSavedAt(info.savedAt)}</span>
+      </div>
+      <div className={styles.slotMeta}>
+        <span className={styles.slotDay}>Day {info.day}</span>
+        <span className={styles.slotDot}>&middot;</span>
+        <span className={styles.slotLocation}>{info.locationName}</span>
+        {info.routeType && (
+          <>
+            <span className={styles.slotDot}>&middot;</span>
+            <span className={styles.slotRoute}>{routeLabel(info.routeType)}</span>
+          </>
+        )}
+      </div>
+      {info.partyNames.length > 0 && (
+        <div className={styles.slotParty}>
+          {info.partyNames.join(', ')}
+        </div>
+      )}
+      <div className={styles.slotActions}>
+        <button className={styles.slotBtn} onClick={() => onLoad(slotId)}>
+          Continue &rarr;
+        </button>
+        <button
+          className={styles.slotBtn + ' ' + styles.slotBtnDanger}
+          onClick={() => onDelete(slotId)}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function HomePage() {
   const router = useRouter();
-  const [savedRun, setSavedRun] = useState(false);
+  const { slots, isLoading, load, startNew, remove } = useSaveSlots();
 
-  useEffect(() => {
-    setSavedRun(hasSavedRun());
-  }, []);
+  const hasAnySave = slots.some(Boolean);
 
-  const handleNewGame = () => {
-    // Clear any existing save so START_RUN initializes clean
-    try { window.localStorage.removeItem('game:currentRun'); } catch { /* ok */ }
+  const handleLoad = async (slotId: SlotId) => {
+    await load(slotId);
     router.push('/game');
+  };
+
+  const handleNew = async (slotId: SlotId) => {
+    await startNew(slotId);
+    router.push('/game');
+  };
+
+  const handleDelete = async (slotId: SlotId) => {
+    await remove(slotId);
   };
 
   return (
@@ -42,6 +116,7 @@ export default function HomePage() {
           }} />
         ))}
       </div>
+
       <div className={styles.center}>
         <h1 className={styles.title}>WHOREAGON TRAIL</h1>
         <p className={styles.subtitle}>Independence, Missouri. 1848.</p>
@@ -50,31 +125,37 @@ export default function HomePage() {
           Comedy. Frontier. Twelve people who shouldn&apos;t be in the same wagon.
         </p>
 
-        {savedRun && (
-          <button
-            className={styles.startButton}
-            style={{ marginTop: '32px' }}
-            onClick={() => router.push('/game')}
-          >
-            Continue Journey &rarr;
+        {!hasAnySave && !isLoading && (
+          <button className={styles.startButton} onClick={() => handleNew(0)}>
+            Begin the Journey
           </button>
         )}
 
-        <button
-          className={styles.startButton}
-          style={savedRun ? {
-            marginTop: '8px',
-            fontSize: '0.9rem',
-            color: 'var(--muted)',
-            borderBottomColor: 'var(--border)',
-          } : { marginTop: '32px' }}
-          onClick={handleNewGame}
-        >
-          {savedRun ? 'New Journey' : 'Begin the Journey'}
-        </button>
+        {(hasAnySave || isLoading) && (
+          <div className={styles.slotsSection}>
+            <p className={styles.slotsHeading}>
+              {isLoading ? 'Loading saves...' : 'Choose your wagon'}
+            </p>
+            {!isLoading && (
+              <div className={styles.slotsGrid}>
+                {(slots as SlotInfo[]).map((info, i) => (
+                  <SlotCard
+                    key={i}
+                    slotId={i as SlotId}
+                    info={info}
+                    onLoad={handleLoad}
+                    onNew={handleNew}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        <p className={styles.note}>Requires Anthropic API key. Text + optional voice input.</p>
+        <p className={styles.note}>Requires Anthropic API key &middot; Text + optional voice input.</p>
       </div>
+
       <div className={styles.vignette} />
     </main>
   );

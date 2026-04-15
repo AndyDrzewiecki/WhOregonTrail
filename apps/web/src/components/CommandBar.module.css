@@ -81,3 +81,23 @@
 .voiceBtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
 .voiceBtn.listening { border-color: var(--gold); color: var(--gold); background: rgba(201,162,39,0.15); animation: blink-cursor 0.8s step-end infinite; }
 .voiceBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Mobile ────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .bar {
+    padding: 10px 16px;
+    /* Sit above iOS home indicator */
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .input {
+    font-size: 16px; /* Prevents iOS auto-zoom on focus */
+  }
+
+  .sendBtn,
+  .voiceBtn {
+    width: 44px;
+    height: 44px; /* Minimum touch target */
+  }
+}
