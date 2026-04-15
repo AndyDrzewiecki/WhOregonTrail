@@ -186,15 +186,18 @@ export type GameState = {
 };
 
 // ── Default resource values for a new run ────────────────────────────────────
+// A 12-person party at steady pace consumes ~24 food/day and ~5 water/day.
+// Starting values give ~6 days of food, ~8 days of water, and enough money
+// to access the Entertainment Circuit route (threshold: $40) from Day 1.
 
 export const DEFAULT_RESOURCES: ResourceState = {
-  food: 0,
-  water: 0,
-  money: 0,
+  food: 150,   // ~6 days at steady pace for 12 people
+  water: 4,    // ~8 days at steady pace
+  money: 75,   // above $40 Entertainment Circuit threshold
   oxenHealth: 100,
   wagonHealth: 100,
-  ammunition: 0,
-  medicine: 0,
+  ammunition: 30,
+  medicine: 3,
   wagonParts: { wheels: 2, axles: 1, tongues: 1 },
 };
 

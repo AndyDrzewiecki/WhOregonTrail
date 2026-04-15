@@ -7,6 +7,7 @@ import type { GameState } from '@whoreagon-trail/game-engine';
 export type SceneName =
   | 'WAGON_OPENER'
   | 'CHARACTER_INTRODUCTIONS'
+  | 'SUPPLY_SHOP'
   | 'CONFLICT'
   | 'PLANNING'
   | 'COACHING'
@@ -38,6 +39,7 @@ export function useSceneRouter(state: GameState | null): SceneName {
     if (!state || !state.flags.includes('PROLOGUE_COMPLETE')) return 'WAGON_OPENER';
     return 'CHARACTER_INTRODUCTIONS';
   }
+  if (state.phase === 'SETUP') return 'SUPPLY_SHOP';
   // Offer coaching before fort/performance if conditions are met
   if (
     state.phase === 'FORT' &&

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useWebGameState } from '@/hooks/useWebGameState';
 import WagonOpener from '@/scenes/WagonOpener';
 import CharacterIntroductions from '@/scenes/CharacterIntroductions';
+import SupplyShop from '@/scenes/SupplyShop';
 import ConflictScene from '@/scenes/ConflictScene';
 import PlanningMode from '@/scenes/PlanningMode';
 import GatekeeperScene from '@/scenes/GatekeeperScene';
@@ -47,6 +48,7 @@ export default function GamePage() {
     switch (scene) {
       case 'WAGON_OPENER':          return <WagonOpener state={state} dispatch={dispatch} />;
       case 'CHARACTER_INTRODUCTIONS': return <CharacterIntroductions state={state} dispatch={dispatch} />;
+      case 'SUPPLY_SHOP':           return <SupplyShop state={state} dispatch={dispatch} />;
       case 'CONFLICT':              return <ConflictScene state={state} dispatch={dispatch} />;
       case 'PLANNING':              return <PlanningMode state={state} dispatch={dispatch} />;
       case 'COACHING':              return <CoachingScene state={state} dispatch={dispatch} />;

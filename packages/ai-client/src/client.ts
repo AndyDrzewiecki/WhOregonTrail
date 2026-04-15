@@ -12,7 +12,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
-export const MODEL = 'claude-sonnet-4-20250514' as const;
+export const MODEL = 'claude-sonnet-4-6' as const;
 export const MAX_TOKENS = 1000 as const;
 
 let _client: Anthropic | null = null;

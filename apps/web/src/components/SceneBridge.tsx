@@ -16,6 +16,7 @@ interface Props {
 
 // Short bridge lines keyed to scene transitions
 const BRIDGE_LINES: Record<string, string> = {
+  SUPPLY_SHOP: 'What you bring determines what survives. Choose carefully.',
   TRAIL: 'The wagon rolls. Miles pass. The trail gives nothing back.',
   CONFLICT: 'Something has been building. Now it surfaces.',
   PLANNING: 'Time to decide what comes next.',

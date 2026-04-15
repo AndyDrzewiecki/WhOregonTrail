@@ -95,7 +95,7 @@ export default function CharacterIntroductions({ state, dispatch }: Props) {
             isStreaming: false,
           }]);
         }, 400);
-        setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'TRAIL' }), 1800);
+        setTimeout(() => dispatch({ type: 'SET_PHASE', phase: 'SETUP' }), 1800);
       }
     }).finally(() => setInputEnabled(true));
   }, [state, dispatch, exchanges]);
