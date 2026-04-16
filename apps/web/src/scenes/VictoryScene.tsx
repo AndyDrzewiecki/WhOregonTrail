@@ -4,101 +4,72 @@ import type { GameState, GameAction } from '@whoreagon-trail/game-engine';
 import { computeScore, getEpilogue } from '@whoreagon-trail/game-engine';
 import type { RunScore } from '@whoreagon-trail/game-engine';
 import { characterStable } from '@whoreagon-trail/characters';
-import { streamDialogue } from '@whoreagon-trail/ai-client';
+import { generateEpilogue } from '@whoreagon-trail/ai-client';
 import DialogueStream, { type DisplayMessage } from '@/components/DialogueStream';
 import styles from './Scene.module.css';
 
 interface Props { state: GameState | null; dispatch: (a: GameAction) => void; }
-
-// ── Arrival arrival AI prompt ─────────────────────────────────────────────────
-
-function buildArrivalPrompt(state: GameState, score: RunScore): string {
-  const alive = state.party.filter(m => m.isAlive).map(m => m.name).join(', ');
-  const dead = state.party.filter(m => !m.isAlive).map(m => m.name);
-  const route = state.route?.type ?? 'unknown route';
-  const mem = state.runMemory?.events.slice(-4).map(e => e.label).join('; ') ?? '';
-
-  return [
-    `The wagon has arrived in Oregon City after ${state.day} days on the trail.`,
-    `Route taken: ${route}.`,
-    `Survivors: ${alive}.`,
-    dead.length > 0 ? `Did not arrive: ${dead.join(', ')}.` : 'The whole party survived.',
-    mem ? `Significant moments: ${mem}.` : '',
-    `Final score: ${score.final}/100 (${score.grade}).`,
-    '',
-    'Write the arrival scene. This is the end of the journey. Three to four short paragraphs.',
-    'Voice: Mel Brooks-adjacent narrator — knowing, dry, sometimes warm. Oregon Trail by way of burlesque. Do not be sentimental but do not be cold.',
-    'The scene should acknowledge what was lost and what survived. Reference at least one specific character by name.',
-    'End with one sentence that lands.',
-    'Do not use the words "adventure", "journey", or "quest".',
-  ].filter(Boolean).join('\n');
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VictoryScene({ state, dispatch }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [arrivalDone, setArrivalDone] = useState(false);
-  const streamStarted = useRef(false);
+  const fetchStarted = useRef(false);
 
   const score = state ? computeScore(state) : null;
   const epilogue = state && score ? getEpilogue(state, score) : '';
 
-  // Stream the AI arrival narrative once
+  // Fetch the AI arrival narrative once
   useEffect(() => {
-    if (!state || streamStarted.current) return;
-    streamStarted.current = true;
+    if (!state || fetchStarted.current) return;
+    fetchStarted.current = true;
 
     // Dispatch END so storage is cleared and state reflects run complete
     dispatch({ type: 'SET_PHASE', phase: 'END' });
 
-    const s = score!;
-    const streamingId = 'arrival-ai';
-    setMessages([{ id: streamingId, text: '', isStreaming: true }]);
-    let acc = '';
-
-    const prompt = buildArrivalPrompt(state, s);
+    const loadingId = 'arrival-loading';
+    setMessages([{ id: loadingId, text: 'Oregon City. The wagon rolls in.', isStreaming: true }]);
 
     const fallbackTimer = setTimeout(() => {
-      setMessages(prev => [
-        ...prev.filter(m => m.id !== streamingId),
-        {
-          id: 'arrival-fallback',
-          text: `Oregon City. Day ${state.day}. The wagon rolls through the gate and stops. There is no ceremony. There is no announcement. ${state.party.filter(m => m.isAlive).length} people get out. That is the number that matters. Delphine Marchais looks at the city and then looks at you. She does not say anything. She does not have to.`,
-          isStreaming: false,
-        },
-      ]);
+      const alive = state.party.filter(m => m.isAlive);
+      setMessages([{
+        id: 'arrival-fallback',
+        text: `Oregon City. Day ${state.day}. The wagon rolls through the gate and stops. There is no ceremony. There is no announcement. ${alive.length} people get out. That is the number that matters. Delphine Marchais looks at the city and then looks at you. She does not say anything. She does not have to.`,
+        isStreaming: false,
+      }]);
       setArrivalDone(true);
     }, 14_000);
 
-    streamDialogue({
-      systemPrompt: 'You are a narrator for Whoreagon Trail, a Mel Brooks-style Oregon Trail game about a burlesque troupe traveling west in 1848. Write with a dry, knowing voice. Be specific. Be brief.',
-      userPrompt: prompt,
-      onToken: (token) => {
-        acc += token;
-        setMessages(prev => prev.map(m =>
-          m.id === streamingId ? { ...m, text: acc } : m,
-        ));
-      },
-      onComplete: () => {
-        clearTimeout(fallbackTimer);
-        setMessages(prev => prev.map(m =>
-          m.id === streamingId ? { ...m, isStreaming: false } : m,
-        ));
-        setArrivalDone(true);
-      },
-      onError: () => {
-        clearTimeout(fallbackTimer);
-        setMessages(prev => [
-          ...prev.filter(m => m.id !== streamingId),
-          {
-            id: 'arrival-fallback',
-            text: `Oregon City. Day ${state.day}. The wagon stops. ${state.party.filter(m => m.isAlive).length} people step out. Delphine looks at the city and then at you. The trail is over.`,
-            isStreaming: false,
-          },
-        ]);
-        setArrivalDone(true);
-      },
+    generateEpilogue(state).then((response) => {
+      clearTimeout(fallbackTimer);
+      // Show the outcome description as the arrival narrative, then character dialogue
+      const outcomeText = response.eventOutcome?.description ?? '';
+      const dialogueMsgs: DisplayMessage[] = response.dialogue.map((d, i) => ({
+        id: `arr-${i}`,
+        characterId: d.characterId,
+        characterName: d.characterId?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        voiceTag: (d as { tone?: string }).tone,
+        text: d.text,
+        isStreaming: false,
+      }));
+      const allMsgs: DisplayMessage[] = outcomeText
+        ? [{ id: 'arr-outcome', text: outcomeText, isStreaming: false }, ...dialogueMsgs]
+        : dialogueMsgs;
+      setMessages(allMsgs.length > 0 ? allMsgs : [{
+        id: 'arr-fallback',
+        text: `Oregon City. Day ${state.day}. ${state.party.filter(m => m.isAlive).length} people step out. The trail is over.`,
+        isStreaming: false,
+      }]);
+      setArrivalDone(true);
+    }).catch(() => {
+      clearTimeout(fallbackTimer);
+      setMessages([{
+        id: 'arr-error',
+        text: `Oregon City. Day ${state.day}. The wagon stops. ${state.party.filter(m => m.isAlive).length} people step out. Delphine looks at the city and then at you. The trail is over.`,
+        isStreaming: false,
+      }]);
+      setArrivalDone(true);
     });
 
     return () => clearTimeout(fallbackTimer);
