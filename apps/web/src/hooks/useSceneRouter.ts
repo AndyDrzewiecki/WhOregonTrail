@@ -16,7 +16,8 @@ export type SceneName =
   | 'ENTERTAINMENT_CIRCUIT'
   | 'FORT_SUPPLY'
   | 'MINIGAME'
-  | 'SUMMARY';
+  | 'SUMMARY'
+  | 'VICTORY';
 
 // Event types that route to MinigameInterruption
 const MINIGAME_EVENT_TYPES = new Set([
@@ -69,7 +70,7 @@ export function useSceneRouter(state: GameState | null): SceneName {
   if (state.phase === 'FORT' && state.route?.type === 'entertainment_circuit') return 'ENTERTAINMENT_CIRCUIT';
   if (state.phase === 'FORT') return 'GATEKEEPER';
   if (state.phase === 'CAMPFIRE') return 'SUMMARY';
-  if (state.phase === 'FINALE' || state.phase === 'END') return 'SUMMARY';
+  if (state.phase === 'FINALE' || state.phase === 'END') return 'VICTORY';
   if (state.phase === 'TRAIL') {
     const lastEvent = state.eventHistory[state.eventHistory.length - 1];
     // Only route to event-based scenes for events from today (same day)
