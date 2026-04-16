@@ -68,3 +68,6 @@ export {
   setActiveSlot,
   clearActiveSlot,
 } from './saveSlots';
+
+export type { RunScore } from './scoring';
+export { computeScore, getEpilogue } from './scoring';

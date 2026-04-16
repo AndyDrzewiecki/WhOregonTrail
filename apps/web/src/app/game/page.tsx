@@ -14,6 +14,7 @@ import MinigameInterruption from '@/scenes/MinigameInterruption';
 import DelegationScene from '@/scenes/DelegationScene';
 import FortSupplyScene from '@/scenes/FortSupplyScene';
 import ConsequenceSummary from '@/scenes/ConsequenceSummary';
+import VictoryScene from '@/scenes/VictoryScene';
 import SceneTransition from '@/components/SceneTransition';
 import SceneBridge from '@/components/SceneBridge';
 import DebugHUD from '@/components/DebugHUD';
@@ -75,6 +76,7 @@ export default function GamePage() {
       case 'ENTERTAINMENT_CIRCUIT': return <EntertainmentCircuitScene state={state} dispatch={dispatch} />;
       case 'MINIGAME':              return <MinigameInterruption state={state} dispatch={dispatch} />;
       case 'SUMMARY':               return <ConsequenceSummary state={state} dispatch={dispatch} />;
+      case 'VICTORY':               return <VictoryScene state={state} dispatch={dispatch} />;
       default:                      return <PlanningMode state={state} dispatch={dispatch} />;
     }
   };
